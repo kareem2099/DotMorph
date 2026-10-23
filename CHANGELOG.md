@@ -9,6 +9,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [2.0.2] - 2026-10-24
+
+### Fixed
+
+- **The AppImage now starts on systems without Qt's X11 libraries.** On a clean Ubuntu 22.04
+  (and other minimal installs) it exited before showing a window: Qt's xcb plugin needs
+  `libxkbcommon-x11`, `libxcb-cursor` and 14 more XCB libraries that only machines with Qt
+  or a full desktop already have. The AppImage now bundles them (1.1 MB, taken from
+  AlmaLinux 8, so glibc 2.28 is still the minimum).
+- Two Qt plugins whose libraries are not shipped (PDF images, virtual keyboard) are left out
+  of the AppImage instead of failing to load.
+
+### Added
+
+- `packaging/build.py appimage-test`: starts the AppImage offline on a clean Ubuntu 22.04
+  X server and checks that its window opens. The release workflow runs it on every build.
+
 ## [2.0.1] - 2026-10-24
 
 ### Changed
@@ -420,6 +437,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[2.0.2]: https://github.com/kareem2099/DotMorph/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/kareem2099/DotMorph/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/kareem2099/DotMorph/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/kareem2099/DotMorph/releases/tag/v0.1.0

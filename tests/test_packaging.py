@@ -160,6 +160,23 @@ def test_appimage_trim_list_spares_what_the_qml_imports(build):
         assert not hits, (module, hits)
 
 
+def test_appimage_x11_libs(build, monkeypatch, tmp_path):
+    """The bundled X11 libraries go next to Qt's and nothing trims them; without a container
+    tool the build stops with a clear message instead of shipping an AppImage that can't start."""
+    from fnmatch import fnmatch
+
+    assert "libxkbcommon-x11.so.0" in build.APPIMAGE_X11_LIBS
+    assert "libxcb-cursor.so.0" in build.APPIMAGE_X11_LIBS  # Qt 6.5+ refuses xcb without it
+    for lib in build.APPIMAGE_X11_LIBS:
+        rel = f"PySide6/Qt/lib/{lib}"
+        assert not [p for p in build.APPIMAGE_TRIM if fnmatch(rel, p)], lib
+    monkeypatch.setattr(build.shutil, "which", lambda name: None)
+    with pytest.raises(SystemExit, match="docker"):
+        build.fetch_x11_libs(tmp_path)
+    with pytest.raises(SystemExit, match="docker"):
+        build.cmd_appimage_test(type("A", (), {"appimage": str(tmp_path / "x.AppImage")})())
+
+
 def test_launcher_inside_an_appimage(tmp_path, monkeypatch):
     from dotmorph.linux import paths
 

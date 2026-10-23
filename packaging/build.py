@@ -6,7 +6,9 @@
     python packaging/build.py notes [2.0.0]     that version's CHANGELOG section (release notes)
     python packaging/build.py deb               dist/dotmorph_<ver>-1_all.deb
     python packaging/build.py appimage          dist/DotMorph-<ver>-x86_64.AppImage (needs the
-                                                wheel in dist/ and `pip install python-appimage`)
+                                                wheel in dist/, `pip install python-appimage`
+                                                and docker for the X11 libraries)
+    python packaging/build.py appimage-test IMG start it offline on a clean Ubuntu 22.04
     python packaging/build.py aur [--fetch]     dist/aur/PKGBUILD + .SRCINFO (sha256 of the tag
                                                 tarball with --fetch, else SKIP)
     python packaging/build.py sums DIR [--sign] SHA256SUMS for DIR; with --sign a detached
@@ -438,6 +440,9 @@ APPIMAGE_TRIM = (
     *(f"PySide6/Qt/plugins/{group}" for group in (
         "designer", "qmllint", "qmltooling", "sqldrivers",
         "wayland-graphics-integration-server")),
+    # their libraries (Qt Pdf, Qt VirtualKeyboard) are in PySide6-Addons, so they never load
+    "PySide6/Qt/plugins/imageformats/libqpdf.so",
+    "PySide6/Qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.so",
 )
 # What the app does load; trimming must leave every one of these (guards PySide6 upgrades).
 APPIMAGE_KEEP = (
@@ -449,6 +454,48 @@ APPIMAGE_KEEP = (
     "PySide6/Qt/qml/QtQuick/Controls/Basic", "PySide6/Qt/qml/QtQuick/Controls/Fusion",
     "PySide6/Qt/plugins/platforms/libqxcb.so", "PySide6/Qt/plugins/platforms/libqwayland*.so",
 )
+
+
+# Qt's xcb platform plugin needs these, and neither PySide6 nor the AppImage excludelist (what
+# every host must have: libxcb, libX11, libGL, fontconfig, ...) provides them. A clean Ubuntu
+# 22.04, as AppImageHub tests on, has none, so without them the app exits before its window.
+# Taken from AlmaLinux 8 (the manylinux_2_28 base): they need glibc 2.17 at most.
+APPIMAGE_X11_LIBS = (
+    "libxcb-cursor.so.0", "libxcb-glx.so.0", "libxcb-icccm.so.4", "libxcb-image.so.0",
+    "libxcb-keysyms.so.1", "libxcb-randr.so.0", "libxcb-render-util.so.0", "libxcb-render.so.0",
+    "libxcb-shape.so.0", "libxcb-shm.so.0", "libxcb-sync.so.1", "libxcb-util.so.1",
+    "libxcb-xfixes.so.0", "libxcb-xkb.so.1", "libxkbcommon-x11.so.0", "libxkbcommon.so.0",
+)
+X11_LIBS_IMAGE = "almalinux:8"
+X11_LIBS_PACKAGES = ("libxcb", "libxkbcommon", "libxkbcommon-x11", "xcb-util", "xcb-util-image",
+                     "xcb-util-keysyms", "xcb-util-renderutil", "xcb-util-wm", "xcb-util-cursor")
+
+
+def _container_tool() -> str:
+    tool = shutil.which("docker") or shutil.which("podman")
+    if not tool:
+        raise SystemExit("docker (or podman) is needed for the AppImage's X11 libraries")
+    return tool
+
+
+def fetch_x11_libs(dest: Path) -> list[Path]:
+    """Copy APPIMAGE_X11_LIBS from an AlmaLinux 8 container into dest (next to Qt's libraries,
+    which find them through their $ORIGIN runpath)."""
+    tool = _container_tool()
+    dest.mkdir(parents=True, exist_ok=True)
+    script = (
+        "set -e; dnf -q -y install epel-release >/dev/null; "
+        f"dnf -q -y install {' '.join(X11_LIBS_PACKAGES)} >/dev/null; "
+        f"for l in {' '.join(APPIMAGE_X11_LIBS)}; do cp -L /usr/lib64/$l /out/; done; "
+        f"chown {os.getuid()}:{os.getgid()} /out/*"
+    )
+    subprocess.run([tool, "run", "--rm", "-v", f"{dest.resolve()}:/out", X11_LIBS_IMAGE,
+                    "bash", "-c", script], check=True)
+    libs = [dest / name for name in APPIMAGE_X11_LIBS]
+    missing = [p.name for p in libs if not p.is_file()]
+    if missing:
+        raise SystemExit(f"{X11_LIBS_IMAGE} did not provide: {', '.join(missing)}")
+    return libs
 
 
 def _size(path: Path) -> int:
@@ -520,6 +567,11 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
         arch = appdir.name.rsplit("-", 1)[-1]
         freed = trim_appdir(appdir)
         print(f"trimmed {freed / 2**20:.0f} MB of unused PySide6 / pip files")
+        qt_lib = next(appdir.glob("opt/python*/lib/python*/site-packages/PySide6/Qt/lib"))
+        with tempfile.TemporaryDirectory() as libs_tmp:
+            for lib in fetch_x11_libs(Path(libs_tmp)):
+                shutil.copy2(lib, qt_lib / lib.name)
+        print(f"bundled {len(APPIMAGE_X11_LIBS)} X11 libraries from {X11_LIBS_IMAGE}")
         subprocess.run([exe, "install", "appimagetool"], check=True)
         tool = subprocess.run([exe, "which", "appimagetool"], check=True, capture_output=True,
                               text=True).stdout.strip()
@@ -530,6 +582,46 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
         out.chmod(0o755)
     print(f"built {_show(out)} ({out.stat().st_size / 2**20:.0f} MB)")
     return out
+
+
+# The oldest Ubuntu LTS in standard support (AppImageHub tests on it), with an X server and only
+# the libraries the AppImage excludelist expects from every host.
+CLEAN_TEST_IMAGE = "dotmorph-appimage-test:22.04"
+CLEAN_TEST_DOCKERFILE = """FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends xvfb xauth x11-utils \\
+    libgl1 libegl1 libfontconfig1 libglib2.0-0 libdbus-1-3 > /dev/null \\
+    && rm -rf /var/lib/apt/lists/*
+"""
+CLEAN_TEST_SCRIPT = r"""
+export LANG=C HOME=/tmp/home XDG_RUNTIME_DIR=/tmp/rt QT_QPA_PLATFORM=xcb
+mkdir -p "$HOME" "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
+xvfb-run -a -s "-screen 0 1280x800x24" bash -c '
+  /app/AppRun > /tmp/app.log 2>&1 & pid=$!
+  sleep 15
+  if ! kill -0 $pid 2>/dev/null; then echo "FAIL: exited before 15 s"; cat /tmp/app.log; exit 1; fi
+  if ! xwininfo -root -tree | grep -q "\"DotMorph\""; then
+    echo "FAIL: no DotMorph window"; cat /tmp/app.log; kill $pid; exit 1
+  fi
+  echo "ok: window open after 15 s"; kill $pid'
+"""
+
+
+def cmd_appimage_test(args: argparse.Namespace) -> None:
+    """Start the AppImage without files, offline, on a clean Ubuntu 22.04 X server: it must
+    show its window and keep running (AppImageHub's test)."""
+    image = Path(args.appimage).resolve()
+    tool = _container_tool()
+    subprocess.run([tool, "build", "-q", "-t", CLEAN_TEST_IMAGE, "-"],
+                   input=CLEAN_TEST_DOCKERFILE.encode(), check=True, stdout=subprocess.DEVNULL)
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([str(image), "--appimage-extract"], cwd=tmp, check=True,
+                       stdout=subprocess.DEVNULL)
+        proc = subprocess.run([tool, "run", "--rm", "--init", "--network", "none", "-v",
+                               f"{Path(tmp) / 'squashfs-root'}:/app:ro", CLEAN_TEST_IMAGE,
+                               "bash", "-c", CLEAN_TEST_SCRIPT], timeout=180)
+    if proc.returncode:
+        raise SystemExit(f"{image.name} did not start on a clean Ubuntu 22.04")
 
 
 # ---- AUR ----------------------------------------------------------------------------------
@@ -711,6 +803,8 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("appimage")
     p.add_argument("--python", default="3.12")
     p.add_argument("--linux-tag", default="manylinux_2_28_x86_64")
+    p = sub.add_parser("appimage-test", help="start the AppImage on a clean Ubuntu 22.04")
+    p.add_argument("appimage")
     p = sub.add_parser("aur")
     p.add_argument("--fetch", action="store_true", help="download the tag tarball for sha256")
     p.add_argument("--tarball", help="compute sha256 from a local tarball")
@@ -724,7 +818,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     {
         "assets": cmd_assets, "check": cmd_check, "notes": cmd_notes, "deb": cmd_deb,
-        "appimage": cmd_appimage, "aur": cmd_aur, "install-share": cmd_install_share,
+        "appimage": cmd_appimage, "appimage-test": cmd_appimage_test, "aur": cmd_aur,
+        "install-share": cmd_install_share,
         "sdist-check": cmd_sdist_check, "sums": cmd_sums,
     }[args.cmd](args)
 

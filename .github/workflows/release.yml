@@ -85,6 +85,12 @@ jobs:
           cat settings.log
           test "$code" = 124
 
+      # the runner has the X11 libraries installed above; a user's machine may not. This starts
+      # the AppImage offline on a clean Ubuntu 22.04 X server, as AppImageHub does.
+      - name: AppImage on a clean Ubuntu 22.04
+        timeout-minutes: 10
+        run: python packaging/build.py appimage-test dist/DotMorph-*.AppImage
+
       - name: AUR files
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
