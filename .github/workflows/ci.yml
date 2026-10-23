@@ -26,8 +26,11 @@ jobs:
         run: |
           # man-db rebuilds its index after every install and can stall the runner for ages
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
+          # a stalled mirror download is dropped after 30 s and retried (applies to every apt call)
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99ci-network > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
             desktop-file-utils appstream libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
       - name: Install
         run: pip install -e '.[gui,dev]'
