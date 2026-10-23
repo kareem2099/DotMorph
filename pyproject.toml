@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dotmorph"
-version = "2.0.2"
+version = "2.0.3"
 description = "Fast file converter for Linux with an animated radial menu: 440+ conversions for images, PDF, SVG, video, audio, Office and Markdown, from your file manager, a hotkey, a screen-edge dock or the terminal."
 readme = "README.md"
 license = "Apache-2.0"

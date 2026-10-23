@@ -8,7 +8,7 @@
 Markdown, with **440+ conversions** from one animated wheel. Open it from your file manager,
 a hotkey, a screen-edge dock or the terminal.
 
-[![Version](https://img.shields.io/badge/version-2.0.2-7C5CFF?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.3-7C5CFF?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-2FD38B?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-2FC8F0?style=flat-square&logo=python&logoColor=white)](https://github.com/kareem2099/DotMorph/blob/main/pyproject.toml)
 [![Linux](https://img.shields.io/badge/platform-Linux%20%C2%B7%20X11%20%C2%B7%20Wayland-FFB547?style=flat-square&logo=linux&logoColor=black)](#install)
@@ -103,8 +103,8 @@ Pick one. Every package installs the same app, the `dotmorph` command, and the "
 | Method | Command | Best for |
 |--------|---------|----------|
 | **pipx** (PyPI) | `pipx install 'dotmorph[gui]'` | any distro, per user, easy updates |
-| **AppImage** | download `DotMorph-2.0.2-x86_64.AppImage` from [Releases](https://github.com/kareem2099/DotMorph/releases), `chmod +x`, run | no install at all, one file |
-| **Debian / Kali / Ubuntu** | `sudo apt install ./dotmorph_2.0.2-1_all.deb` from [Releases](https://github.com/kareem2099/DotMorph/releases) | system package with apt dependencies |
+| **AppImage** | download `DotMorph-2.0.3-x86_64.AppImage` from [Releases](https://github.com/kareem2099/DotMorph/releases), `chmod +x`, run | no install at all, one file |
+| **Debian / Kali / Ubuntu** | `sudo apt install ./dotmorph_2.0.3-1_all.deb` from [Releases](https://github.com/kareem2099/DotMorph/releases) | system package with apt dependencies |
 | **Arch / Manjaro (AUR)** | `yay -S dotmorph` (or `paru -S dotmorph`) | Arch-based systems |
 | **From source** | see below | development |
 
@@ -124,7 +124,7 @@ Notes per method:
 - **AppImage:** it bundles Python, Qt and Qt's X11 libraries, so only the conversion tools
   come from your system. If it won't start because of FUSE, install `libfuse2`
   (`libfuse2t64` on Ubuntu 24.04+) or run it with `--appimage-extract-and-run`. Run
-  `./DotMorph-2.0.2-x86_64.AppImage integrate` once to get menus and the launcher; desktop
+  `./DotMorph-2.0.3-x86_64.AppImage integrate` once to get menus and the launcher; desktop
   integration remembers the AppImage's path, so keep it in one place (e.g. `~/Applications`).
   It carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate)
   or AppImageLauncher update it from GitHub Releases, downloading only what changed.
@@ -202,7 +202,7 @@ and the public key (`dotmorph-signing-key.asc`):
 sha256sum -c SHA256SUMS --ignore-missing                  # checks the files you downloaded
 gpg --import dotmorph-signing-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS                    # the checksums are really from us
-gpg --verify DotMorph-2.0.2-x86_64.AppImage.asc DotMorph-2.0.2-x86_64.AppImage
+gpg --verify DotMorph-2.0.3-x86_64.AppImage.asc DotMorph-2.0.3-x86_64.AppImage
 ```
 
 Releases are signed by **FreeRave &lt;kareem209907@gmail.com&gt;**, with this key fingerprint:
@@ -216,7 +216,7 @@ that key means the file is exactly what the release workflow built. Packages fro
 PyPI carry PyPI's own attestations instead.
 
 On Arch you can also install the ready-built package from the release without the AUR:
-`sudo pacman -U dotmorph-2.0.2-1-any.pkg.tar.zst`.
+`sudo pacman -U dotmorph-2.0.3-1-any.pkg.tar.zst`.
 
 ### From source
 
