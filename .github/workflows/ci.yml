@@ -17,14 +17,14 @@ jobs:
       matrix:
         python: ["3.10", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       # The .deb files are cached: the Ubuntu mirror is sometimes very slow (a few KB/s), and
       # ffmpeg + ImageMagick pull ~150 MB. With a cache hit nothing big is downloaded.
       - name: Cache apt packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/apt-cache
           key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
