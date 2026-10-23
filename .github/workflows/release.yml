@@ -67,14 +67,17 @@ jobs:
         run: python packaging/build.py appimage
 
       - name: AppImage smoke test
+        timeout-minutes: 5
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"  # no FUSE on the runner
           QT_QPA_PLATFORM: offscreen
         run: |
           image=$(ls dist/DotMorph-*.AppImage)
           chmod +x "$image"
-          # update information for AppImageUpdate, and the .zsync it points to
-          "$image" --appimage-updateinformation | grep -q '^gh-releases-zsync|kareem2099|DotMorph|latest|'
+          # update information for AppImageUpdate, and the .zsync it points to. Read without
+          # APPIMAGE_EXTRACT_AND_RUN: with it the runtime skips --appimage-* and starts the app
+          timeout 20 env -u APPIMAGE_EXTRACT_AND_RUN "$image" --appimage-updateinformation \
+            | grep -q '^gh-releases-zsync|kareem2099|DotMorph|latest|'
           test -s "$image.zsync"
           "$image" --version
           "$image" formats | tail -1
