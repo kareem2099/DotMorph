@@ -172,3 +172,12 @@ def test_every_format_has_a_freedesktop_mime_type():
 
     assert set(FORMATS) <= set(MIME)
     assert MIME["ts"] == ["video/mp2t"] and MIME["3gp"] == ["video/3gpp"]
+
+
+def test_appimage_launcher_has_one_name(build):
+    """python-appimage names the image after the last Name= line."""
+    desktop = build.appimage_desktop()
+    names = [ln for ln in desktop.splitlines() if ln.startswith("Name=")]
+    assert names == ["Name=DotMorph"]
+    assert "Desktop Action" not in desktop and "Actions=" not in desktop
+    assert "Exec=dotmorph %F" in desktop

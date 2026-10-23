@@ -416,6 +416,15 @@ def cmd_deb(_: argparse.Namespace) -> Path:
 APPIMAGE_PYSIDE = "PySide6-Essentials~=6.9.0"
 
 
+def appimage_desktop() -> str:
+    """The launcher inside the AppImage: the main entry only. python-appimage names the image
+    after the *last* "Name=" line, and the Settings action's "Name=Settings" made it
+    Settings-x86_64.AppImage. (`integrate` adds the full launcher with the action later.)"""
+    text = (ASSETS / "dotmorph.desktop").read_text()
+    main = text.split("\n[Desktop Action", 1)[0]
+    return "\n".join(ln for ln in main.splitlines() if not ln.startswith("Actions=")) + "\n"
+
+
 def cmd_appimage(args: argparse.Namespace) -> Path:
     ver = version()
     wheels = sorted(DIST.glob(f"dotmorph-{ver}-py3-none-any.whl"))
@@ -435,15 +444,17 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
         (recipe / "entrypoint.sh").write_text(
             '#! /bin/bash\n{{ python-executable }} -I -m dotmorph "$@"\n'
         )
-        desktop = (ASSETS / "dotmorph.desktop").read_text()
-        (recipe / "dotmorph.desktop").write_text(desktop)
+        (recipe / "dotmorph.desktop").write_text(appimage_desktop())
         shutil.copyfile(ASSETS / "icons/dotmorph-256.png", recipe / "dotmorph.png")
         shutil.copyfile(ASSETS / f"{APP_ID}.metainfo.xml", recipe / f"{APP_ID}.appdata.xml")
         subprocess.run([exe, "build", "app", "-l", args.linux_tag, "-p", args.python, "-n",
                         "DotMorph", str(recipe)], check=True, cwd=tmp)
-        built = next(Path(tmp).glob("DotMorph-*.AppImage"))
+        images = sorted(Path(tmp).glob("*.AppImage"))
+        if not images:
+            raise SystemExit("python-appimage finished but produced no .AppImage")
+        built = images[0]
         DIST.mkdir(exist_ok=True)
-        out = DIST / f"DotMorph-{ver}-{built.stem.split('-')[-1]}.AppImage"
+        out = DIST / f"DotMorph-{ver}-{built.stem.rsplit('-', 1)[-1]}.AppImage"
         shutil.move(built, out)
         out.chmod(0o755)
     print(f"built {_show(out)}")
