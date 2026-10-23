@@ -24,15 +24,21 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Tools
+        timeout-minutes: 12
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y librsvg2-2 libegl1 libgl1 libxkbcommon0 libfontconfig1 \
+          # man-db rebuilds its index after every install and can stall the runner for ages
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 librsvg2-2 libegl1 libgl1 libxkbcommon0 libfontconfig1 \
             libdbus-1-3 libxcb-cursor0
           pip install build twine python-appimage pillow
 
@@ -105,6 +111,7 @@ jobs:
     # A real Arch package, built with makepkg from the same PKGBUILD the AUR gets.
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     container: archlinux:base-devel
     steps:
       - name: Tools
@@ -147,6 +154,7 @@ jobs:
     # Collect everything, write SHA256SUMS, sign every file (.asc), add the public key.
     needs: [build, arch]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -192,6 +200,7 @@ jobs:
     needs: release-files
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -210,6 +219,7 @@ jobs:
     needs: github-release
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: pypi
       url: https://pypi.org/project/dotmorph/
@@ -228,6 +238,7 @@ jobs:
     needs: github-release
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:

@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
     strategy:
       fail-fast: false
       matrix:
@@ -19,9 +22,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install conversion tools
+        timeout-minutes: 12
         run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
+          # man-db rebuilds its index after every install and can stall the runner for ages
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
             desktop-file-utils appstream libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
       - name: Install
         run: pip install -e '.[gui,dev]'
