@@ -226,10 +226,11 @@ def test_wheel_touching_an_edge_docks_and_peeks(app, tmp_path):
 
         m.dock.collapse()
         y_tab = m.window.y()
+        y_saved = settings.load().dock_y  # depends on the screen size: compare, don't assume
         m.dock.slide(40)
         m.dock.slideEnded()
         assert m.window.y() == y_tab + 40  # moved down along the edge
-        assert settings.load().dock_y > 0.5
+        assert settings.load().dock_y > y_saved
 
         m.dock.undock()
         assert m.dock.mode == "free" and m.window.width() == 560
