@@ -60,7 +60,7 @@ DotMorph puts every converter you already have behind **one wheel**:
 | ⚙️ **Settings window** | Theme, language, notifications, output folder, your own format order, the shortcut, integrations, watch folders and engine status, all in one place. |
 | 🌍 **English & العربية** | Full Arabic interface with right-to-left layout and a proper Arabic font, chosen automatically from your system language. |
 | 🎨 **Themes** | Dark, light and glass in the DotSuite style. Reduced motion for anyone who prefers no animation. |
-| 🧪 **Reliable** | 92 tests, safe temporary files, cancel at any time, and existing files are never overwritten. |
+| 🧪 **Reliable** | 94 tests, safe temporary files, cancel at any time, and existing files are never overwritten. |
 
 ## Supported conversions
 
@@ -462,7 +462,7 @@ by FreeRave:
 
 ```bash
 pip install -e '.[gui,dev]'
-pytest          # 92 tests; those for tools that aren't installed are skipped
+pytest          # 94 tests; those for tools that aren't installed are skipped
 ruff check .
 ```
 

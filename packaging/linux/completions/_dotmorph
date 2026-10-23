@@ -33,7 +33,7 @@ _dotmorph() {
                 '--resize[50%, 1920x1080 (fit inside) or 1280 (width)]:SPEC:' \
                 '--strip[drop EXIF / tags while converting]' \
                 '--overwrite[replace existing files]' \
-                '(-j --jobs)'{-j,--jobs}'[files converted in parallel (default 8)]:jobs:' \
+                '(-j --jobs)'{-j,--jobs}'[files converted in parallel (default CPU cores, up to 8)]:jobs:' \
                 '--timeout[give up on one file after N seconds]:timeout:' \
                 '(-q --quiet)'{-q,--quiet}'[no progress bar]' \
                 '--notify[desktop notification when done (with an Open folder button)]' \

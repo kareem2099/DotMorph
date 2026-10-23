@@ -14,7 +14,6 @@ Every file written is recorded in a manifest so `--remove` takes away exactly th
 from __future__ import annotations
 
 import json
-import mimetypes
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
@@ -47,17 +46,37 @@ QUICK = (
     Quick("compress", "Compress"),
 )
 
-EXTRA_MIME = {
-    "heic": "image/heic", "heif": "image/heif", "avif": "image/avif", "webp": "image/webp",
-    "jxl": "image/jxl", "psd": "image/vnd.adobe.photoshop", "xcf": "image/x-xcf",
-    "mkv": "video/x-matroska", "webm": "video/webm", "m4a": "audio/mp4", "opus": "audio/ogg",
-    "flac": "audio/flac", "md": "text/markdown", "epub": "application/epub+zip",
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "odt": "application/vnd.oasis.opendocument.text",
-    "ods": "application/vnd.oasis.opendocument.spreadsheet",
-    "odp": "application/vnd.oasis.opendocument.presentation",
+# Every catalog format -> its freedesktop MIME types (what file managers use for "Open with").
+# Written out instead of asking Python's mimetypes: that answer depends on the Python version
+# and on /etc/mime.types, so generated launchers differed between machines (and it maps .ts
+# to Qt Linguist files).
+MIME = {
+    "png": ["image/png"], "jpg": ["image/jpeg"], "webp": ["image/webp"],
+    "avif": ["image/avif"], "gif": ["image/gif"], "bmp": ["image/bmp"],
+    "tiff": ["image/tiff"], "ico": ["image/vnd.microsoft.icon"],
+    "heic": ["image/heic"], "heif": ["image/heif"], "svg": ["image/svg+xml"],
+    "psd": ["image/vnd.adobe.photoshop"], "xcf": ["image/x-xcf"], "tga": ["image/x-tga"],
+    "jxl": ["image/jxl"],
+    "mp4": ["video/mp4"], "mkv": ["video/x-matroska"], "webm": ["video/webm"],
+    "mov": ["video/quicktime"], "avi": ["video/x-msvideo", "video/vnd.avi"],
+    "m4v": ["video/x-m4v"], "flv": ["video/x-flv"], "wmv": ["video/x-ms-wmv"],
+    "mpeg": ["video/mpeg"], "ts": ["video/mp2t"], "3gp": ["video/3gpp"],
+    "mp3": ["audio/mpeg"], "wav": ["audio/x-wav", "audio/vnd.wave"], "flac": ["audio/flac"],
+    "ogg": ["audio/ogg", "audio/x-vorbis+ogg"], "opus": ["audio/x-opus+ogg"],
+    "m4a": ["audio/mp4"], "aac": ["audio/aac"], "wma": ["audio/x-ms-wma"],
+    "pdf": ["application/pdf"],
+    "docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    "doc": ["application/msword"], "odt": ["application/vnd.oasis.opendocument.text"],
+    "rtf": ["application/rtf", "text/rtf"], "txt": ["text/plain"],
+    "md": ["text/markdown"], "html": ["text/html"], "rst": ["text/x-rst"],
+    "org": ["text/org"], "epub": ["application/epub+zip"],
+    "pptx": ["application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+    "ppt": ["application/vnd.ms-powerpoint"],
+    "odp": ["application/vnd.oasis.opendocument.presentation"],
+    "xlsx": ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    "xls": ["application/vnd.ms-excel"],
+    "ods": ["application/vnd.oasis.opendocument.spreadsheet"],
+    "csv": ["text/csv"], "ps": ["application/postscript"],
 }
 
 
@@ -69,12 +88,8 @@ def mime_types(every: bool = False) -> list[str]:
     """MIME types DotMorph opens: what works here, or (packages) every known format."""
     from ..core.formats import FORMATS
 
-    types = set()
-    for ext in (FORMATS if every else registry.matrix()):
-        mime = EXTRA_MIME.get(ext) or mimetypes.guess_type(f"x.{ext}")[0]
-        if mime:
-            types.add(mime)
-    return sorted(types)
+    exts = FORMATS if every else registry.matrix()
+    return sorted({mime for ext in exts for mime in MIME.get(ext, [])})
 
 
 def sources_for(target: str) -> list[str]:

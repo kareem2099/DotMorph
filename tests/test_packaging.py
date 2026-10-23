@@ -150,3 +150,25 @@ def test_sums_and_signatures(build, tmp_path, monkeypatch):
         assert bad.returncode != 0
     finally:
         subprocess.run(["gpgconf", "--kill", "gpg-agent"], capture_output=True)
+
+
+def test_generated_assets_do_not_depend_on_the_machine(build, monkeypatch):
+    """CI regenerates packaging/linux/ and compares: nothing may depend on CPU count,
+    the system MIME database or the Python version."""
+    import mimetypes
+    import os
+
+    first = build.text_assets()
+    monkeypatch.setattr(os, "cpu_count", lambda: 2)
+    monkeypatch.setattr(mimetypes, "guess_type", lambda *a, **k: (None, None))
+    assert build.text_assets() == first
+    monkeypatch.setattr(os, "cpu_count", lambda: 64)
+    assert build.text_assets() == first
+
+
+def test_every_format_has_a_freedesktop_mime_type():
+    from dotmorph.core.formats import FORMATS
+    from dotmorph.linux.integrate import MIME
+
+    assert set(FORMATS) <= set(MIME)
+    assert MIME["ts"] == ["video/mp2t"] and MIME["3gp"] == ["video/3gpp"]

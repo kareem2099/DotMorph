@@ -45,7 +45,7 @@ def _parser() -> argparse.ArgumentParser:
     conv.add_argument("--strip", action="store_true", help="drop EXIF / tags while converting")
     conv.add_argument("--overwrite", action="store_true", help="replace existing files")
     conv.add_argument("-j", "--jobs", type=int, default=0,
-                      help=f"files converted in parallel (default {default_jobs()})")
+                      help="files converted in parallel (default: CPU cores, up to 8)")
     conv.add_argument("--timeout", type=float, help="give up on one file after N seconds")
     conv.add_argument("-q", "--quiet", action="store_true", help="no progress bar")
     conv.add_argument("--notify", action="store_true",

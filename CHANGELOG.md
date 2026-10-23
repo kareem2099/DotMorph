@@ -337,11 +337,14 @@ Bugs in 0.1.0, plus those found and fixed while 2.0 was being tested on a real d
   (108-byte limit). There is now a short private fallback path.
 - **Fake 0% on GIF:** GIF making showed 0% for the whole job, because the palette pass
   reads the whole video first. It now shows elapsed time.
+- **"Open with DotMorph" for `.ts` and `.3gp` videos:** they were registered as a Qt
+  Linguist file and as audio. Every format now has an explicit freedesktop MIME type, so
+  launchers come out the same on every machine.
 - **QML warnings on exit:** "Cannot read property of null" no longer appears.
 
 ### Quality
 
-- **92 tests** (11 at 0.1.0) covering:
+- **94 tests** (11 at 0.1.0) covering:
   - the engine, and every backend (skipped when its tool isn't installed)
   - presets, dry run, completions (bash and zsh syntax-checked; bash completion exercised)
   - the real QML wheel offscreen: keyboard, drag, options, edge dock, hit-testing on both
