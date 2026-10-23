@@ -21,8 +21,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      # The .deb files are cached: the Ubuntu mirror is sometimes very slow (a few KB/s), and
+      # ffmpeg + ImageMagick pull ~150 MB. With a cache hit nothing big is downloaded.
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: apt-${{ runner.os }}-
       - name: Install conversion tools
-        timeout-minutes: 12
+        timeout-minutes: 15
         run: |
           # man-db rebuilds its index after every install and can stall the runner for ages
           sudo rm -f /var/lib/man-db/auto-update
@@ -30,8 +38,12 @@ jobs:
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99ci-network > /dev/null
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
+          mkdir -p ~/apt-cache/partial
+          sudo apt-get install -y --no-install-recommends -o Dir::Cache::Archives="$HOME/apt-cache" poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
             desktop-file-utils appstream libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-cache   # so actions/cache can save it
+          rm -rf ~/apt-cache/partial ~/apt-cache/lock
+          du -sh ~/apt-cache
       - name: Install
         run: pip install -e '.[gui,dev]'
       - name: Lint
