@@ -42,12 +42,12 @@ Developed on Kali, GNOME on Wayland.
 - [~] Icon and branding in line with DotSuite (emerald accent, neon icon, PNG sizes, banner)
 
 ## Phase 5: Distribution
-- [~] PyPI (`pipx install 'dotmorph[gui]'`), built and tested from a clean venv
-- [~] `.deb` (built, contents checked, runs; installs with apt dependencies)
-- [~] AppImage (built and smoke-tested in the release workflow)
-- [~] AUR (`PKGBUILD` + `.SRCINFO`; build steps simulated)
-- [~] Release automation on tag: GitHub Release, PyPI trusted publishing, AUR push (docs/RELEASING.md)
-- [~] AppStream metainfo, man page, packaged completions and icons
+- [x] PyPI (`pipx install 'dotmorph[gui]'`), published with attestations in 2.0.0
+- [x] `.deb` (built, contents checked, runs; installs with apt dependencies)
+- [x] AppImage (built and smoke-tested in the release workflow)
+- [~] AUR (`PKGBUILD` and an Arch package ship with every release; the AUR push waits for an AUR account key)
+- [x] Release automation on tag: GitHub Release, PyPI trusted publishing, AUR push (docs/RELEASING.md)
+- [x] AppStream metainfo, man page, packaged completions and icons
 - Flatpak: not planned. The sandbox blocks the host converters and the desktop integration DotMorph is built on.
 
 ## Phase 6: Website and launch
