@@ -9,6 +9,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [Unreleased] (2.0.1)
+
+### Changed
+
+- **The AppImage is about a third smaller** (~108 MB down to ~72 MB). The PySide6 wheels it
+  bundles carry Qt developer tools DotMorph never runs: `lupdate` alone was 53 MB, plus Qt
+  Designer, `qmlls`, test and compiler libraries, unused Quick Controls styles, type stubs and
+  `pip`. `packaging/build.py appimage` now removes them before packing, and fails the build
+  if trimming would take out anything the app loads.
+
 ## [2.0.0] - 2026-10-22 · "Overdrive"
 
 The first stable release. DotMorph was rebuilt end to end: a new conversion engine, a new
@@ -410,5 +420,6 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[Unreleased]: https://github.com/kareem2099/DotMorph/compare/v2.0.0...HEAD
 [2.0.0]: https://github.com/kareem2099/DotMorph/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/kareem2099/DotMorph/releases/tag/v0.1.0

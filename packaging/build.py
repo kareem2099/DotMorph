@@ -415,6 +415,68 @@ def cmd_deb(_: argparse.Namespace) -> Path:
 # requirements through the shell unquoted, so "<" or ">" would become redirections.
 APPIMAGE_PYSIDE = "PySide6-Essentials~=6.9.0"
 
+# Shipped in the PySide6 wheels but never loaded by DotMorph: developer tools (lupdate alone is
+# 53 MB), Qt Designer, test / compiler / compositor libraries, the Quick Controls styles we
+# don't use (Basic is ours, Fusion is the dialogs' fallback), type stubs and pip. Globs are
+# relative to site-packages. Trimming takes the image from ~108 MB to ~72 MB.
+APPIMAGE_TRIM = (
+    "pip", "pip-*.dist-info",
+    *(f"PySide6/{tool}" for tool in (
+        "lupdate", "lrelease", "linguist", "assistant", "designer", "qmlls", "qmlformat",
+        "qmllint", "qmlcachegen", "qmltyperegistrar", "qmlimportscanner", "uic", "rcc",
+        "balsam", "balsamui", "svgtoqml", "qsb")),
+    "PySide6/*.pyi", "PySide6/include", "PySide6/typesystems", "PySide6/glue",
+    "PySide6/scripts",
+    *(f"PySide6/Qt/lib/libQt6{lib}.so*" for lib in (
+        "Designer", "DesignerComponents", "WaylandCompositor", "QmlCompiler", "Help",
+        "UiTools", "Test", "QuickTest")),
+    *(f"PySide6/Qt/lib/libQt6QuickControls2{style}*" for style in (
+        "Imagine", "Material", "Universal", "FluentWinUI3")),
+    *(f"PySide6/Qt/qml/QtQuick/Controls/{style}" for style in (
+        "Imagine", "Material", "Universal", "FluentWinUI3")),
+    "PySide6/Qt/qml/QtTest",
+    *(f"PySide6/Qt/plugins/{group}" for group in (
+        "designer", "qmllint", "qmltooling", "sqldrivers",
+        "wayland-graphics-integration-server")),
+)
+# What the app does load; trimming must leave every one of these (guards PySide6 upgrades).
+APPIMAGE_KEEP = (
+    "dotmorph/ui/qml/main.qml", "PIL",
+    "PySide6/QtQuick.abi3.so", "PySide6/Qt/lib/libQt6Quick.so.6",
+    "PySide6/Qt/lib/libQt6QuickControls2Basic.so.6", "PySide6/Qt/lib/libicudata.so.*",
+    "PySide6/Qt/qml/QtQuick/Shapes", "PySide6/Qt/qml/QtQuick/Effects",
+    "PySide6/Qt/qml/QtQuick/Particles", "PySide6/Qt/qml/QtQuick/Dialogs",
+    "PySide6/Qt/qml/QtQuick/Controls/Basic", "PySide6/Qt/qml/QtQuick/Controls/Fusion",
+    "PySide6/Qt/plugins/platforms/libqxcb.so", "PySide6/Qt/plugins/platforms/libqwayland*.so",
+)
+
+
+def _size(path: Path) -> int:
+    if path.is_symlink() or path.is_file():
+        return path.lstat().st_size
+    return sum(p.lstat().st_size for p in path.rglob("*") if p.is_file() or p.is_symlink())
+
+
+def trim_appdir(appdir: Path) -> int:
+    """Delete APPIMAGE_TRIM from the AppDir and check APPIMAGE_KEEP survived. Returns the bytes
+    freed."""
+    sites = sorted(appdir.glob("opt/python*/lib/python*/site-packages"))
+    if not sites:
+        raise SystemExit(f"no site-packages under {appdir}")
+    site = sites[0]
+    freed = 0
+    for pattern in APPIMAGE_TRIM:
+        for path in sorted(site.glob(pattern)):
+            freed += _size(path)
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+    missing = [rel for rel in APPIMAGE_KEEP if not any(site.glob(rel))]
+    if missing:
+        raise SystemExit("trimming removed (or PySide6 no longer ships): " + ", ".join(missing))
+    return freed
+
 
 def appimage_desktop() -> str:
     """The launcher inside the AppImage: the main entry only. python-appimage names the image
@@ -447,17 +509,26 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
         (recipe / "dotmorph.desktop").write_text(appimage_desktop())
         shutil.copyfile(ASSETS / "icons/dotmorph-256.png", recipe / "dotmorph.png")
         shutil.copyfile(ASSETS / f"{APP_ID}.metainfo.xml", recipe / f"{APP_ID}.appdata.xml")
+        # --no-packaging leaves the AppDir (DotMorph-<arch>/) so it can be trimmed before
+        # appimagetool packs it
         subprocess.run([exe, "build", "app", "-l", args.linux_tag, "-p", args.python, "-n",
-                        "DotMorph", str(recipe)], check=True, cwd=tmp)
-        images = sorted(Path(tmp).glob("*.AppImage"))
-        if not images:
-            raise SystemExit("python-appimage finished but produced no .AppImage")
-        built = images[0]
+                        "DotMorph", "--no-packaging", str(recipe)], check=True, cwd=tmp)
+        appdirs = [p for p in Path(tmp).glob("DotMorph-*") if p.is_dir()]
+        if not appdirs:
+            raise SystemExit("python-appimage finished but left no AppDir")
+        appdir = appdirs[0]
+        arch = appdir.name.rsplit("-", 1)[-1]
+        freed = trim_appdir(appdir)
+        print(f"trimmed {freed / 2**20:.0f} MB of unused PySide6 / pip files")
+        subprocess.run([exe, "install", "appimagetool"], check=True)
+        tool = subprocess.run([exe, "which", "appimagetool"], check=True, capture_output=True,
+                              text=True).stdout.strip()
         DIST.mkdir(exist_ok=True)
-        out = DIST / f"DotMorph-{ver}-{built.stem.rsplit('-', 1)[-1]}.AppImage"
-        shutil.move(built, out)
+        out = DIST / f"DotMorph-{ver}-{arch}.AppImage"
+        subprocess.run([tool, "--no-appstream", str(appdir), str(out)], check=True,
+                       env={**os.environ, "ARCH": arch})
         out.chmod(0o755)
-    print(f"built {_show(out)}")
+    print(f"built {_show(out)} ({out.stat().st_size / 2**20:.0f} MB)")
     return out
 
 

@@ -107,6 +107,56 @@ def test_appimage_needs_a_wheel(build, tmp_path, monkeypatch):
         build.cmd_appimage(type("A", (), {"python": "3.12", "linux_tag": "x"})())
 
 
+def _fake_appdir(root: Path, build, extra: tuple[str, ...] = ()) -> Path:
+    site = root / "opt/python3.12/lib/python3.12/site-packages"
+    for rel in [*build.APPIMAGE_KEEP, *extra]:
+        path = site / rel.replace("*", "6")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x" * 100)
+    return site
+
+
+def test_appimage_trim(build, tmp_path):
+    junk = ("PySide6/lupdate", "PySide6/QtCore.pyi", "PySide6/Qt/lib/libQt6Designer.so.6",
+            "PySide6/Qt/lib/libQt6QuickControls2Material.so.6",
+            "PySide6/Qt/qml/QtQuick/Controls/Material/qmldir", "PySide6/Qt/qml/QtTest/qmldir",
+            "PySide6/Qt/plugins/qmltooling/libqmldbg_debugger.so", "pip/__init__.py",
+            "pip-25.0.dist-info/METADATA")
+    site = _fake_appdir(tmp_path, build, junk)
+    (site / "PySide6/Qt/lib/libQt6Designer.so").symlink_to("libQt6Designer.so.6")
+    assert build.trim_appdir(tmp_path) == 100 * len(junk) + len("libQt6Designer.so.6")
+    for rel in junk:
+        assert not (site / rel).exists(), rel
+    assert not (site / "PySide6/Qt/lib/libQt6Designer.so").is_symlink()
+    for rel in build.APPIMAGE_KEEP:
+        assert any(site.glob(rel)), rel
+    assert build.trim_appdir(tmp_path) == 0  # idempotent
+
+
+def test_appimage_trim_refuses_to_break_the_app(build, tmp_path):
+    site = _fake_appdir(tmp_path, build)
+    (site / "PySide6/Qt/lib/libQt6QuickControls2Basic.so.6").unlink()
+    with pytest.raises(SystemExit, match="libQt6QuickControls2Basic"):
+        build.trim_appdir(tmp_path)
+    with pytest.raises(SystemExit, match="no site-packages"):
+        build.trim_appdir(tmp_path / "empty")
+
+
+def test_appimage_trim_list_spares_what_the_qml_imports(build):
+    """Every QtQuick module the QML imports must stay out of APPIMAGE_TRIM."""
+    import re
+    from fnmatch import fnmatch
+
+    qml = ROOT / "src/dotmorph/ui/qml"
+    imports = {m for f in qml.glob("*.qml")
+               for m in re.findall(r"^import (QtQuick[\w.]*)", f.read_text(), re.M)}
+    assert {"QtQuick.Shapes", "QtQuick.Controls.Basic"} <= imports
+    for module in imports:
+        rel = "PySide6/Qt/qml/" + module.replace(".", "/") + "/qmldir"
+        hits = [p for p in build.APPIMAGE_TRIM if fnmatch(rel, p) or rel.startswith(p + "/")]
+        assert not hits, (module, hits)
+
+
 def test_launcher_inside_an_appimage(tmp_path, monkeypatch):
     from dotmorph.linux import paths
 
