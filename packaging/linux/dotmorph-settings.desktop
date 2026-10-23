@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DotMorph Settings
+Name[ar]=إعدادات DotMorph
+Comment=Theme, language, shortcut, file-manager menus and watch folders
+Exec=dotmorph settings
+Icon=dotmorph
+Terminal=false
+Categories=Settings;
+Keywords=dotmorph;converter;settings;preferences;

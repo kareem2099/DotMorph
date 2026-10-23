@@ -1,0 +1,256 @@
+name: Release
+
+# Push a tag like v2.0.0 to publish:
+#   GitHub Release  AppImage, .deb, Arch .pkg.tar.zst, wheel, sdist (.tar.gz), PKGBUILD,
+#                   SHA256SUMS, a detached .asc signature for each, and the public key
+#   PyPI            wheel + sdist, with PyPI's own attestations (trusted publishing)
+#   AUR             PKGBUILD + .SRCINFO (when AUR_SSH_PRIVATE_KEY is set)
+# Signing needs the GPG_PRIVATE_KEY secret (and GPG_PASSPHRASE if the key has one); without
+# it the release still ships SHA256SUMS, just no .asc files.
+# Run it by hand (Actions -> Release -> Run workflow) for a dry run: every package is built,
+# tested, summed and signed, and uploaded as the "release" artifact. Nothing is published.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-2 libegl1 libgl1 libxkbcommon0 libfontconfig1 \
+            libdbus-1-3 libxcb-cursor0
+          pip install build twine python-appimage pillow
+
+      - name: Version matches the tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python packaging/build.py check --tag "${GITHUB_REF_NAME}"
+
+      - name: Wheel and sdist
+        run: |
+          python -m build
+          twine check dist/*
+          python packaging/build.py sdist-check
+
+      - name: Debian package
+        run: |
+          python packaging/build.py deb
+          dpkg-deb --info dist/*.deb
+          dpkg-deb -c dist/*.deb | grep -q usr/lib/python3/dist-packages/dotmorph/ui/qml/main.qml
+
+      - name: AppImage
+        run: python packaging/build.py appimage
+
+      - name: AppImage smoke test
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"  # no FUSE on the runner
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          image=$(ls dist/DotMorph-*.AppImage)
+          chmod +x "$image"
+          "$image" --version
+          "$image" formats | tail -1
+          python -c "from PIL import Image; Image.new('RGB', (8, 8)).save('probe.png')"
+          "$image" convert probe.png --to webp -q
+          test -f probe.webp
+          # the settings window must load its QML; it then runs until the timeout (124)
+          set +e
+          timeout 15 "$image" settings > settings.log 2>&1
+          code=$?
+          set -e
+          cat settings.log
+          test "$code" = 124
+
+      - name: AUR files
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            python packaging/build.py aur --fetch
+          else
+            python packaging/build.py aur
+          fi
+
+      - name: Release notes
+        run: python packaging/build.py notes > dist/RELEASE_NOTES.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+            dist/aur/
+            dist/RELEASE_NOTES.md
+
+  arch:
+    # A real Arch package, built with makepkg from the same PKGBUILD the AUR gets.
+    needs: test
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Tools
+        run: |
+          pacman -Syu --noconfirm --needed python python-pillow pyside6 qt6-declarative librsvg \
+            python-build python-installer python-hatchling namcap
+      - uses: actions/checkout@v4
+      - name: makepkg
+        run: |
+          ver=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+          mkdir -p /tmp/pkg
+          # the same layout as GitHub's tag tarball, so the PKGBUILD needs no changes
+          tar --exclude=.git --transform "s,^\.,DotMorph-$ver," -czf "/tmp/pkg/dotmorph-$ver.tar.gz" .
+          python packaging/build.py aur --tarball "/tmp/pkg/dotmorph-$ver.tar.gz"
+          cp dist/aur/PKGBUILD /tmp/pkg/
+          useradd -m builder
+          chown -R builder /tmp/pkg
+          cd /tmp/pkg
+          sudo -u builder makepkg --noconfirm
+          namcap PKGBUILD *.pkg.tar.zst || true
+      - name: Install and smoke test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          pacman -U --noconfirm /tmp/pkg/*.pkg.tar.zst
+          dotmorph --version
+          dotmorph formats | tail -1
+          set +e
+          timeout 15 dotmorph settings > settings.log 2>&1
+          code=$?
+          set -e
+          cat settings.log
+          test "$code" = 124
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: /tmp/pkg/*.pkg.tar.zst
+
+  release-files:
+    # Collect everything, write SHA256SUMS, sign every file (.asc), add the public key.
+    needs: [build, arch]
+    runs-on: ubuntu-latest
+    env:
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Collect
+        run: |
+          mkdir release
+          cp dist/*.AppImage dist/*.deb dist/*.pkg.tar.zst dist/*.whl dist/*.tar.gz release/
+          cp dist/aur/PKGBUILD release/PKGBUILD
+          cp dist/RELEASE_NOTES.md .
+          ls -la release
+      - name: Import the signing key
+        if: env.GPG_PRIVATE_KEY != ''
+        run: printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+      - name: SHA256SUMS and signatures
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            python3 packaging/build.py sums release --sign ${GPG_KEY_ID:+--key "$GPG_KEY_ID"}
+          else
+            python3 packaging/build.py sums release
+            echo "::warning::GPG_PRIVATE_KEY is not set: no .asc signatures in this release."
+          fi
+          cd release
+          sha256sum -c SHA256SUMS
+          for f in *.asc; do
+            [ "$f" = dotmorph-signing-key.asc ] && continue
+            gpg --batch --verify "$f" "${f%.asc}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: |
+            release/
+            RELEASE_NOTES.md
+
+  github-release:
+    needs: release-files
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: .
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+            --title "DotMorph ${GITHUB_REF_NAME#v}" --notes-file RELEASE_NOTES.md release/*
+
+  pypi:
+    needs: github-release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/dotmorph/
+    permissions:
+      id-token: write  # trusted publishing: no API token stored in the repo
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+      # PyPI no longer accepts .asc signatures; the action uploads PEP 740 attestations
+      # (signed by this workflow's identity) instead.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  aur:
+    needs: github-release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    env:
+      AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - name: Push PKGBUILD to the AUR
+        if: env.AUR_KEY != ''
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur"
+          git clone ssh://aur@aur.archlinux.org/dotmorph.git aur
+          cp dist/aur/PKGBUILD dist/aur/.SRCINFO aur/
+          cd aur
+          git config user.name "FreeRave"
+          git config user.email "kareem209907@gmail.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet || git commit -m "Update to ${GITHUB_REF_NAME#v}"
+          git push origin HEAD:master
+      - name: No AUR key
+        if: env.AUR_KEY == ''
+        run: echo "::notice::AUR_SSH_PRIVATE_KEY is not set; PKGBUILD is attached to the release instead."

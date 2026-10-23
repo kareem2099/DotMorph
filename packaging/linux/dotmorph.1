@@ -1,0 +1,245 @@
+.TH DOTMORPH 1 "2026-10-22" "DotMorph 2.0.0" "User Commands"
+.SH NAME
+dotmorph \- convert files from a radial menu, the file manager or the terminal
+.SH SYNOPSIS
+.B dotmorph
+[\fB\-\-theme\fR \fIdark|light|glass\fR] [\fB\-\-reduce\-motion\fR] [\fB\-\-clipboard\fR] [\fB\-\-no\-daemon\fR] [\fIFILE\fR...]
+.br
+.B dotmorph
+\fICOMMAND\fR [\fIOPTIONS\fR]
+.SH DESCRIPTION
+DotMorph converts images, PDF, SVG, video, audio, Office documents and Markdown using the tools installed on the system (Pillow, librsvg, poppler, Ghostscript, ImageMagick, ffmpeg, LibreOffice, pandoc). Without a command it opens the radial menu for the given files; through the daemon this takes about 0.1 s.
+.SH COMMANDS
+.TP
+\fBconvert\fR
+Convert files from the terminal.
+.RS
+.TP
+\fB\-\-to\fR \fITARGET\fR
+format (png, mp4, pdf, ...) or tool: compress, resize\-50, rotate\-90, strip, mute, merge\-pdf
+.RE
+.RS
+.TP
+\fB\-\-preset\fR \fIPRESET\fR
+web: WebP, fits 1920x1920, quality 80, no metadata; email: JPG, fits 1280x1280, quality 75, no metadata; thumb: WebP thumbnail, fits 320x320; print: high resolution: PDF/SVG at 300 dpi, quality 95; share: smaller file in the same format, no metadata
+.RE
+.RS
+.TP
+\fB\-o\fR, \fB\-\-out\fR \fIOUT\fR
+output directory (default: next to source)
+.RE
+.RS
+.TP
+\fB\-\-dpi\fR \fIDPI\fR
+render resolution (default: PDF 150, SVG 96 = original size)
+.RE
+.RS
+.TP
+\fB\-\-quality\fR \fIQUALITY\fR
+JPEG/WebP/AVIF quality (default 90)
+.RE
+.RS
+.TP
+\fB\-\-resize\fR \fISPEC\fR
+50%, 1920x1080 (fit inside) or 1280 (width)
+.RE
+.RS
+.TP
+\fB\-\-strip\fR
+drop EXIF / tags while converting
+.RE
+.RS
+.TP
+\fB\-\-overwrite\fR
+replace existing files
+.RE
+.RS
+.TP
+\fB\-j\fR, \fB\-\-jobs\fR \fIJOBS\fR
+files converted in parallel (default 8)
+.RE
+.RS
+.TP
+\fB\-\-timeout\fR \fITIMEOUT\fR
+give up on one file after N seconds
+.RE
+.RS
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+no progress bar
+.RE
+.RS
+.TP
+\fB\-\-notify\fR
+desktop notification when done (with an Open folder button)
+.RE
+.RS
+.TP
+\fB\-n\fR, \fB\-\-dry\-run\fR
+show what would be converted, and how, without doing it
+.RE
+.TP
+\fBformats\fR
+List supported conversions.
+.RS
+.TP
+\fB\-\-missing\fR
+what installing the missing tools would add
+.RE
+.TP
+\fBsettings\fR
+Open the settings window.
+.TP
+\fBcompletions\fR
+Shell completion script (bash, zsh, fish).
+.RS
+.TP
+\fB\-\-install\fR
+write it where your shell picks it up (per user)
+.RE
+.TP
+\fBdoctor\fR
+Check which tools are installed and what they unlock.
+.TP
+\fBdaemon\fR
+Keep the wheel loaded so it opens instantly.
+.RS
+.TP
+\fB\-\-install\fR
+start now and at every login
+.RE
+.RS
+.TP
+\fB\-\-uninstall\fR
+stop and remove from login
+.RE
+.RS
+.TP
+\fB\-\-stop\fR
+stop the running daemon
+.RE
+.RS
+.TP
+\fB\-\-status\fR
+is it running?
+.RE
+.RS
+.TP
+\fB\-\-theme\fR \fITHEME\fR
+override the theme from the settings
+.RE
+.TP
+\fBintegrate\fR
+Add DotMorph to file\-manager right\-click menus and Open With.
+.RS
+.TP
+\fB\-\-remove\fR
+take everything out again
+.RE
+.TP
+\fBhotkey\fR
+Global shortcut: open the wheel with the copied files.
+.RS
+.TP
+\fB\-\-key\fR \fIKEY\fR
+e.g. '<Super><Shift>m' (the default) or '<Control><Alt>c'
+.RE
+.RS
+.TP
+\fB\-\-force\fR
+even if the key is already taken
+.RE
+.RS
+.TP
+\fB\-\-remove\fR
+remove the shortcut
+.RE
+.TP
+\fBwatch\fR
+Convert new files in folders automatically.
+.RS
+.TP
+\fB\-\-to\fR \fITARGET\fR
+format or tool for new files
+.RE
+.RS
+.TP
+\fB\-\-from\fR \fIEXTS\fR
+only these source formats, comma separated (default: all that fit)
+.RE
+.RS
+.TP
+\fB\-o\fR, \fB\-\-out\fR \fIOUT\fR
+output directory (default: same folder)
+.RE
+.RS
+.TP
+\fB\-\-quality\fR \fIQUALITY\fR
+
+.RE
+.RS
+.TP
+\fB\-\-resize\fR \fISPEC\fR
+
+.RE
+.RS
+.TP
+\fB\-\-strip\fR
+
+.RE
+.RS
+.TP
+\fB\-r\fR, \fB\-\-recursive\fR
+watch sub\-folders too
+.RE
+.RS
+.TP
+\fB\-\-notify\fR
+notification for each file
+.RE
+.RS
+.TP
+\fB\-\-install\fR
+run as a systemd user service
+.RE
+.RS
+.TP
+\fB\-\-list\fR
+list installed watch services
+.RE
+.RS
+.TP
+\fB\-\-uninstall\fR \fINAME\fR
+remove an installed watch service
+.RE
+.SH FILES
+.TP
+\fI~/.config/dotmorph/settings.json\fR
+Theme, language, options, pinned and hidden formats, edge dock position.
+.TP
+\fI$XDG_RUNTIME_DIR/dotmorph.sock\fR
+The daemon's socket.
+.SH ENVIRONMENT
+.TP
+\fBDOTMORPH_THEME\fR
+dark, light or glass; overrides the saved theme.
+.TP
+\fBDOTMORPH_REDUCE_MOTION\fR
+1 turns the wheel's animations off.
+.SH EXIT STATUS
+0 when everything converted, 1 when something failed, 130 when cancelled.
+.SH EXAMPLES
+.nf
+dotmorph photo.png
+dotmorph convert report.pdf \-\-to png \-\-dpi 200
+dotmorph convert holiday.mov \-\-to mp4
+dotmorph convert shots/*.png \-\-preset web
+dotmorph watch ~/Downloads \-\-from heic \-\-to jpg \-\-install
+dotmorph doctor
+.fi
+.SH SEE ALSO
+\fBffmpeg\fR(1), \fBpdftoppm\fR(1), \fBgs\fR(1), \fBmagick\fR(1), \fBpandoc\fR(1)
+.PP
+https://dotsuite.dev/en/product/dotmorph
+.SH AUTHOR
+FreeRave (Kareem), part of DotSuite (https://dotsuite.dev).

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_call:  # the release workflow runs the same tests first
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install conversion tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
+            desktop-file-utils appstream libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - name: Install
+        run: pip install -e '.[gui,dev]'
+      - name: Lint
+        run: ruff check .
+      - name: Versions and generated assets are in sync
+        run: python packaging/build.py check
+      - name: Test
+        run: pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen

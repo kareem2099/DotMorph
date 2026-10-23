@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # actions/checkout, setup-python, upload-artifact, pypi-publish, …
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  # Pillow, PySide6-Essentials, pytest, ruff (from pyproject.toml)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+    commit-message:
+      prefix: deps

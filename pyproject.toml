@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dotmorph"
+version = "2.0.0"
+description = "Fast file converter for Linux with an animated radial menu: 440+ conversions for images, PDF, SVG, video, audio, Office and Markdown, from your file manager, a hotkey, a screen-edge dock or the terminal."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "FreeRave (Kareem)", email = "kareem209907@gmail.com" }]
+keywords = [
+    "file converter", "linux", "radial menu", "pdf to png", "heic to jpg", "svg to png",
+    "svg to pdf", "video to gif", "mov to mp4", "docx to pdf", "markdown to pdf", "compress pdf",
+    "webp", "avif", "ffmpeg", "imagemagick", "libreoffice", "pandoc", "nautilus", "thunar",
+    "dolphin", "gnome", "wayland", "pyside6", "qml", "dotsuite",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Desktop Environment :: File Managers",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing :: Markup",
+    "Topic :: Utilities",
+]
+dependencies = ["Pillow>=10.0"]
+
+[project.optional-dependencies]
+gui = ["PySide6-Essentials>=6.6"]  # QtQuick, Shapes, Effects, Particles, Dialogs; no WebEngine
+heic = ["pillow-heif>=0.16"]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.urls]
+Homepage = "https://dotsuite.dev/en/product/dotmorph"
+Source = "https://github.com/kareem2099/DotMorph"
+Changelog = "https://github.com/kareem2099/DotMorph/blob/main/CHANGELOG.md"
+Issues = "https://github.com/kareem2099/DotMorph/issues"
+DotSuite = "https://dotsuite.dev/en"
+
+[project.scripts]
+dotmorph = "dotmorph.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dotmorph"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/dotmorph", "packaging", "tests", "docs/*.md", "README.md", "CHANGELOG.md",
+           "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

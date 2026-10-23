@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Release artifacts built locally (packaging/build.py, python-appimage)
+*.AppImage
+*.deb
+*.pkg.tar.zst
+SHA256SUMS
+*.asc
+!docs/**/*.asc
+
+# Launch articles, social posts and their media: drafts, kept local
+articles/
+
+# Local tools and editors
+.claude/
+.vscode/
+.idea/
+*.swp
+.DS_Store

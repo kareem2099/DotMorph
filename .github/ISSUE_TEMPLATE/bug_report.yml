@@ -1,0 +1,89 @@
+name: Bug report
+description: Something doesn't convert, doesn't open, or looks wrong
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The `dotmorph doctor` output below answers
+        most of the first questions, so please include it.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+      placeholder: "I right-clicked a .heic file → DotMorph → To JPG, and got …"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. dotmorph convert photo.heic --to jpg
+        2. …
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `dotmorph doctor`
+      description: Shows the version, distro, installed engines and desktop integration.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or terminal output
+      description: Run the same thing from a terminal and paste what it prints.
+      render: text
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install DotMorph?
+      options:
+        - pipx / pip (PyPI)
+        - AppImage
+        - .deb package
+        - AUR (yay / paru)
+        - Arch .pkg.tar.zst from the release
+        - From source (git clone)
+    validations:
+      required: true
+  - type: dropdown
+    id: session
+    attributes:
+      label: Display server
+      options:
+        - Wayland
+        - X11
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem?
+      multiple: true
+      options:
+        - A conversion (wrong output, error, crash)
+        - The wheel / edge dock (looks or behaves wrong)
+        - Settings window
+        - File-manager menus
+        - Global hotkey
+        - Daemon
+        - Watch folders
+        - Notifications
+        - Arabic / right-to-left
+        - Installation / packaging
+        - Other
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop and file manager
+      placeholder: "GNOME 50 + Nautilus, KDE Plasma 6 + Dolphin, Xfce 4.20 + Thunar …"
+  - type: textarea
+    id: files
+    attributes:
+      label: Sample file (optional)
+      description: If one specific file fails, attach it (or a similar one) if you can share it.

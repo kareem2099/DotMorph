@@ -1,0 +1,45 @@
+name: Feature request
+description: A new format, tool, integration or idea
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The task you're trying to get done. This matters more than the exact solution.
+      placeholder: "I often need to turn screen recordings into small WebM files for chat …"
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could DotMorph help?
+      placeholder: "A 'For chat' preset that makes a WebM under 8 MB …"
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of request
+      options:
+        - New conversion or format
+        - New tool (like compress, resize, strip)
+        - Wheel / edge dock
+        - Settings
+        - Desktop integration (file manager, hotkey, desktop environment)
+        - Packaging / distribution
+        - Translation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: tools
+    attributes:
+      label: Which tool could do the conversion?
+      description: For new formats, a command-line tool that already does it (ffmpeg, ImageMagick, …) helps a lot.
+      placeholder: "inkscape --export-type=emf input.svg"
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself (see CONTRIBUTING.md).
