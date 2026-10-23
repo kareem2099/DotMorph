@@ -177,6 +177,20 @@ def test_appimage_x11_libs(build, monkeypatch, tmp_path):
         build.cmd_appimage_test(type("A", (), {"appimage": str(tmp_path / "x.AppImage")})())
 
 
+def test_appimage_update_information(build, tmp_path):
+    """gh-releases-zsync|user|repo|latest|pattern: the pattern must match the .zsync the build
+    writes, and the .zsync is a release file (summed and signed like the AppImage)."""
+    from fnmatch import fnmatch
+
+    kind, user, repo, channel, pattern = build.APPIMAGE_UPDATE_INFO.split("|")
+    assert (kind, f"{user}/{repo}", channel) == ("gh-releases-zsync", build.REPO, "latest")
+    name = f"DotMorph-{build.version()}-x86_64.AppImage"
+    assert fnmatch(f"{name}.zsync", pattern) and not fnmatch(name, pattern)
+    for f in (name, f"{name}.zsync", "PKGBUILD"):
+        (tmp_path / f).write_text(f)
+    assert f"{name}.zsync" in {p.name for p in build.release_files(tmp_path)}
+
+
 def test_launcher_inside_an_appimage(tmp_path, monkeypatch):
     from dotmorph.linux import paths
 

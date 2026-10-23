@@ -121,12 +121,13 @@ dotmorph doctor                       # what works now, and what to install for 
 Notes per method:
 - **pipx:** add `,heic` (`'dotmorph[gui,heic]'`) for iPhone photos through Pillow. Only
   `PySide6-Essentials` is pulled in (about 250 MB, not the full 700 MB PySide6).
-- **AppImage:** it bundles Python and Qt, so only the conversion tools come from your
-  system. Qt needs `libxcb-cursor0` on X11/XWayland (`sudo apt install libxcb-cursor0`). If
-  it won't start because of FUSE, install `libfuse2` (`libfuse2t64` on Ubuntu 24.04+) or run
-  it with `--appimage-extract-and-run`. Run `./DotMorph-2.0.2-x86_64.AppImage integrate` once
-  to get menus and the launcher; desktop integration remembers the AppImage's path, so keep
-  it in one place (e.g. `~/Applications`).
+- **AppImage:** it bundles Python, Qt and Qt's X11 libraries, so only the conversion tools
+  come from your system. If it won't start because of FUSE, install `libfuse2`
+  (`libfuse2t64` on Ubuntu 24.04+) or run it with `--appimage-extract-and-run`. Run
+  `./DotMorph-2.0.2-x86_64.AppImage integrate` once to get menus and the launcher; desktop
+  integration remembers the AppImage's path, so keep it in one place (e.g. `~/Applications`).
+  It carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate)
+  or AppImageLauncher update it from GitHub Releases, downloading only what changed.
 - **.deb:** it uses your distribution's Qt 6 and PySide6 (`python3-pyside6.*`, `qml6-module-*`,
   6.6 or newer), so it only installs on releases that ship them (see below).
 - **AUR:** it depends on `pyside6`, `qt6-declarative` and `librsvg`; the conversion tools are

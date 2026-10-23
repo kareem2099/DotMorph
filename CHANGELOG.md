@@ -9,6 +9,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **AppImage updates.** The AppImage carries update information
+  (`gh-releases-zsync`), and each release ships a `.zsync` file next to it, so
+  AppImageUpdate and AppImageLauncher can update DotMorph from GitHub Releases and download
+  only the parts that changed. The `.zsync` is summed and signed like every other file.
+
+### Changed
+
+- README: the AppImage no longer asks for `libxcb-cursor0` (bundled since 2.0.2).
+
 ## [2.0.2] - 2026-10-24
 
 ### Fixed
@@ -437,6 +450,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[Unreleased]: https://github.com/kareem2099/DotMorph/compare/v2.0.2...HEAD
 [2.0.2]: https://github.com/kareem2099/DotMorph/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/kareem2099/DotMorph/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/kareem2099/DotMorph/compare/v0.1.0...v2.0.0

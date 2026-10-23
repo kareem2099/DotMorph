@@ -1,7 +1,8 @@
 name: Release
 
 # Push a tag like v2.0.0 to publish:
-#   GitHub Release  AppImage, .deb, Arch .pkg.tar.zst, wheel, sdist (.tar.gz), PKGBUILD,
+#   GitHub Release  AppImage (+ .zsync for delta updates), .deb, Arch .pkg.tar.zst, wheel,
+#                   sdist (.tar.gz), PKGBUILD,
 #                   SHA256SUMS, a detached .asc signature for each, and the public key
 #   PyPI            wheel + sdist, with PyPI's own attestations (trusted publishing)
 #   AUR             PKGBUILD + .SRCINFO (when AUR_SSH_PRIVATE_KEY is set)
@@ -72,6 +73,9 @@ jobs:
         run: |
           image=$(ls dist/DotMorph-*.AppImage)
           chmod +x "$image"
+          # update information for AppImageUpdate, and the .zsync it points to
+          "$image" --appimage-updateinformation | grep -q '^gh-releases-zsync|kareem2099|DotMorph|latest|'
+          test -s "$image.zsync"
           "$image" --version
           "$image" formats | tail -1
           python -c "from PIL import Image; Image.new('RGB', (8, 8)).save('probe.png')"
@@ -114,6 +118,7 @@ jobs:
           path: |
             dist/*.deb
             dist/*.AppImage
+            dist/*.AppImage.zsync
             dist/aur/
             dist/RELEASE_NOTES.md
 
@@ -178,7 +183,7 @@ jobs:
       - name: Collect
         run: |
           mkdir release
-          cp dist/*.AppImage dist/*.deb dist/*.pkg.tar.zst dist/*.whl dist/*.tar.gz release/
+          cp dist/*.AppImage dist/*.AppImage.zsync dist/*.deb dist/*.pkg.tar.zst dist/*.whl dist/*.tar.gz release/
           cp dist/aur/PKGBUILD release/PKGBUILD
           cp dist/RELEASE_NOTES.md .
           ls -la release

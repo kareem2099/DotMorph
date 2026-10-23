@@ -417,6 +417,12 @@ def cmd_deb(_: argparse.Namespace) -> Path:
 # requirements through the shell unquoted, so "<" or ">" would become redirections.
 APPIMAGE_PYSIDE = "PySide6-Essentials~=6.9.0"
 
+# Embedded in the AppImage: AppImageUpdate / AppImageLauncher look up the latest GitHub release,
+# fetch its .zsync and download only the blocks that changed. appimagetool's bundled zsyncmake
+# writes DotMorph-<ver>-x86_64.AppImage.zsync next to the image; the release ships both.
+APPIMAGE_UPDATE_INFO = (f"gh-releases-zsync|{REPO.replace('/', '|')}|latest"
+                        "|DotMorph-*x86_64.AppImage.zsync")
+
 # Shipped in the PySide6 wheels but never loaded by DotMorph: developer tools (lupdate alone is
 # 53 MB), Qt Designer, test / compiler / compositor libraries, the Quick Controls styles we
 # don't use (Basic is ours, Fusion is the dialogs' fallback), type stubs and pip. Globs are
@@ -577,10 +583,14 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
                               text=True).stdout.strip()
         DIST.mkdir(exist_ok=True)
         out = DIST / f"DotMorph-{ver}-{arch}.AppImage"
-        subprocess.run([tool, "--no-appstream", str(appdir), str(out)], check=True,
-                       env={**os.environ, "ARCH": arch})
+        zsync = out.with_name(out.name + ".zsync")
+        zsync.unlink(missing_ok=True)
+        subprocess.run([tool, "--no-appstream", "-u", APPIMAGE_UPDATE_INFO, str(appdir), str(out)],
+                       check=True, cwd=DIST, env={**os.environ, "ARCH": arch})
         out.chmod(0o755)
-    print(f"built {_show(out)} ({out.stat().st_size / 2**20:.0f} MB)")
+    if not zsync.is_file():
+        raise SystemExit(f"appimagetool wrote no {zsync.name} (update information needs it)")
+    print(f"built {_show(out)} ({out.stat().st_size / 2**20:.0f} MB) and {zsync.name}")
     return out
 
 
