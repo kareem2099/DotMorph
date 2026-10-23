@@ -28,8 +28,10 @@ def test_versions_agree_and_assets_are_current(build, capsys):
 
 def test_release_notes_come_from_the_changelog(build):
     notes = build.release_notes(build.version())
-    assert "### Highlights" in notes and "## [0.1.0]" not in notes
-    assert notes.rstrip().endswith("CHANGELOG.md")
+    assert "### " in notes and "## [" not in notes
+    assert notes.rstrip().endswith(f"blob/v{build.version()}/CHANGELOG.md")
+    older = build.release_notes("2.0.0")
+    assert "### Highlights" in older and "## [0.1.0]" not in older and "AppImage is about" not in older
 
 
 def test_desktop_and_appstream_files_validate(build):
