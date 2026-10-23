@@ -31,7 +31,8 @@ def test_release_notes_come_from_the_changelog(build):
     assert "### " in notes and "## [" not in notes
     assert notes.rstrip().endswith(f"blob/v{build.version()}/CHANGELOG.md")
     older = build.release_notes("2.0.0")
-    assert "### Highlights" in older and "## [0.1.0]" not in older and "AppImage is about" not in older
+    assert "### Highlights" in older and "## [0.1.0]" not in older
+    assert "AppImage is about" not in older
 
 
 def test_desktop_and_appstream_files_validate(build):
