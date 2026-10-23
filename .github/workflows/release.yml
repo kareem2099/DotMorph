@@ -59,7 +59,8 @@ jobs:
         run: |
           python packaging/build.py deb
           dpkg-deb --info dist/*.deb
-          dpkg-deb -c dist/*.deb | grep -q usr/lib/python3/dist-packages/dotmorph/ui/qml/main.qml
+          dpkg-deb -c dist/*.deb > deb-contents.txt
+          grep -q usr/lib/python3/dist-packages/dotmorph/ui/qml/main.qml deb-contents.txt
 
       - name: AppImage
         run: python packaging/build.py appimage

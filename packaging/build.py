@@ -411,7 +411,9 @@ def cmd_deb(_: argparse.Namespace) -> Path:
 
 # ---- AppImage -------------------------------------------------------------------------------
 
-APPIMAGE_PYSIDE = "PySide6-Essentials>=6.9,<6.10"  # manylinux_2_28: runs on glibc 2.28+
+# manylinux_2_28 wheels: runs on glibc 2.28+. Written with ~= (6.9.x): python-appimage passes
+# requirements through the shell unquoted, so "<" or ">" would become redirections.
+APPIMAGE_PYSIDE = "PySide6-Essentials~=6.9.0"
 
 
 def cmd_appimage(args: argparse.Namespace) -> Path:
@@ -427,9 +429,9 @@ def cmd_appimage(args: argparse.Namespace) -> Path:
         recipe.mkdir()
         # PySide6 6.10+ wheels need glibc 2.34; 6.9 needs 2.28 (Ubuntu 20.04, Debian 11,
         # RHEL 8). The whole test suite passes on 6.9, so the AppImage stays on it.
-        (recipe / "requirements.txt").write_text(
-            f"{APPIMAGE_PYSIDE}\n{wheels[-1]}[gui]\n"
-        )
+        # PySide6 first (pinned), then the wheel without the [gui] extra, so pip can't swap in
+        # a newer PySide6 that needs glibc 2.34
+        (recipe / "requirements.txt").write_text(f"{APPIMAGE_PYSIDE}\n{wheels[-1]}\n")
         (recipe / "entrypoint.sh").write_text(
             '#! /bin/bash\n{{ python-executable }} -I -m dotmorph "$@"\n'
         )
