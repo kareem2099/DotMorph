@@ -64,6 +64,12 @@ The steps below are what it automates, for reference:
      `gpg --keyserver keys.openpgp.org --send-keys FINGERPRINT`. Then put the fingerprint in
      the README's "Verify your download" section. Every release also attaches it as
      `dotmorph-signing-key.asc`.
+     keys.openpgp.org publishes **one key per email address**: confirming the address for
+     the signing key takes it off any other key with the same address, and the other way
+     round. DotMorph's signing key (FreeRave) is the one published there, so
+     `gpg --keyserver hkps://keys.openpgp.org --recv-keys FINGERPRINT` finds it.
+   - Sign release tags with the same key (`git tag -s`, with `user.signingkey` set to it) and
+     add it to your GitHub account under *SSH and GPG keys*, so tags show as Verified.
 4. **AUR (optional; without it the PKGBUILD is attached to the release instead):**
    - Create an account on aur.archlinux.org and add an SSH public key to it.
    - Create the package once from an Arch machine or container:
