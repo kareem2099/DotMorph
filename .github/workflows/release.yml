@@ -27,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Tools
@@ -109,13 +109,13 @@ jobs:
       - name: Release notes
         run: python packaging/build.py notes > dist/RELEASE_NOTES.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: |
             dist/*.whl
             dist/*.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: |
@@ -136,7 +136,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed python python-pillow pyside6 qt6-declarative librsvg \
             python-build python-installer python-hatchling namcap
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: makepkg
         run: |
           ver=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
@@ -163,7 +163,7 @@ jobs:
           set -e
           cat settings.log
           test "$code" = 124
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: arch
           path: /tmp/pkg/*.pkg.tar.zst
@@ -178,8 +178,8 @@ jobs:
       GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -207,7 +207,7 @@ jobs:
             [ "$f" = dotmorph-signing-key.asc ] && continue
             gpg --batch --verify "$f" "${f%.asc}"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release
           path: |
@@ -222,7 +222,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release
           path: .
@@ -244,7 +244,7 @@ jobs:
     permissions:
       id-token: write  # trusted publishing: no API token stored in the repo
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: python-dist
           path: dist
@@ -260,7 +260,7 @@ jobs:
     env:
       AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: dist
