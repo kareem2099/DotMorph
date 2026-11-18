@@ -45,6 +45,10 @@ dependencies = ["Pillow>=10.0"]
 [project.optional-dependencies]
 gui = ["PySide6-Essentials>=6.6"]  # QtQuick, Shapes, Effects, Particles, Dialogs; no WebEngine
 heic = ["pillow-heif>=0.16"]
+
+# Development tools (PEP 735): installed with `pip install --group dev`, never published as a
+# dependency on PyPI, so package scanners and resolvers only see what users actually install.
+[dependency-groups]
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [project.urls]

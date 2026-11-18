@@ -13,7 +13,7 @@ welcome. DotMorph is part of [DotSuite](https://dotsuite.dev/en).
 ```bash
 git clone https://github.com/kareem2099/DotMorph && cd DotMorph
 python3 -m venv .venv && . .venv/bin/activate
-pip install -e '.[gui,dev]'
+pip install -e '.[gui]' --group dev   # pip 25.1+
 dotmorph doctor                 # which engines you have
 ```
 

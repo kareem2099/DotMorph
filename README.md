@@ -462,7 +462,7 @@ by FreeRave:
 ## Develop
 
 ```bash
-pip install -e '.[gui,dev]'
+pip install -e '.[gui]' --group dev   # pip 25.1+
 pytest          # 94 tests; those for tools that aren't installed are skipped
 ruff check .
 ```
