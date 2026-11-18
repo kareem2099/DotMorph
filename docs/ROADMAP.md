@@ -51,15 +51,23 @@ Developed on Kali, GNOME on Wayland.
 - Flatpak: not planned. The sandbox blocks the host converters and the desktop integration DotMorph is built on.
 
 ## Phase 6: Website and launch
-- [ ] Landing page on `morph.dotsuite.dev` (CNAME), demo GIF first
-- [ ] Launch article (dev.to / Hashnode / Medium)
-- [ ] Share on r/linux, r/unixporn, Show HN
+- [x] Product page on [dotsuite.dev](https://dotsuite.dev/en/product/dotmorph) (instead of a separate landing page)
+- [x] Listed on AppImageHub, OpenDesktop and the AppImage catalog
+- [~] Launch series on dev.to (part 1 published), Medium, social posts
+- [ ] Share on r/linux, Show HN
 
-## Later
-- [ ] **Wayland** (KDE / wlroots via layer-shell, GNOME fallback, portal global shortcuts)
+## Next: 2.1 – 2.3 (details in [PLAN-2.x.md](PLAN-2.x.md))
+- [ ] **2.1** Sound effects (libcanberra, no new dependency)
+- [ ] **2.1** Languages: Russian, German, Italian, French, Spanish, Portuguese (Brazil), Turkish, with plural rules
+- [ ] **2.2** "Fit under X MB" size targets (Discord, WhatsApp, email)
+- [ ] **2.2** OCR: image → text, scanned PDF → searchable PDF
+- [ ] **2.2** Transcription: audio / video → text, SRT, VTT, copy to clipboard (whisper.cpp, offline) ([#4](https://github.com/kareem2099/DotMorph/issues/4))
+- [ ] **2.3** Custom actions (TOML plugins, user-defined sectors)
+- [ ] **2.3** Native Wayland on KDE / wlroots (layer-shell, portal global shortcuts)
+
+## Done in 2.0
 - [x] More formats: HEIC, AVIF, SVG, GIF, PSD, XCF, resize (2.0 engine)
 - [x] Compress / strip metadata (pairs with DotScramble)
 - [x] Audio / video through ffmpeg
 - [x] Office (LibreOffice) and Markdown / EPUB (pandoc)
 - [x] `dotmorph doctor`
-- [ ] Plugin system and user-defined sectors
