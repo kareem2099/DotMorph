@@ -9,7 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
-## [Unreleased]
+## [2.0.4] - 2026-11-18
 
 ### Fixed
 
@@ -465,7 +465,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
-[Unreleased]: https://github.com/kareem2099/DotMorph/compare/v2.0.3...HEAD
+[2.0.4]: https://github.com/kareem2099/DotMorph/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/kareem2099/DotMorph/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/kareem2099/DotMorph/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/kareem2099/DotMorph/compare/v2.0.0...v2.0.1
