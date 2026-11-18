@@ -2,6 +2,7 @@
 XDG directories into tmp_path and fakes gsettings."""
 
 import os
+import socket
 import stat
 import subprocess
 import sys
@@ -223,6 +224,78 @@ def test_watch_service_unit(xdg):
 # ---- daemon ---------------------------------------------------------------------------
 
 
+def ping() -> dict | None:
+    """daemon_running() with room for a slow machine."""
+    reply = ipc.request({"cmd": "ping"}, timeout=10)
+    return reply if reply and reply.get("ok") else None
+
+
+def _fake_daemon(path, reply: bytes | None, stop: threading.Event) -> threading.Thread:
+    """Accept one request on `path`; answer with `reply`, or never answer when it's None."""
+    server = socket.socket(socket.AF_UNIX)
+    server.bind(str(path))
+    server.listen(1)
+
+    def serve():
+        conn, _ = server.accept()
+        with conn, server:
+            conn.makefile("r").readline()
+            if reply is not None:
+                conn.sendall(reply)
+            stop.wait(5)
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_exchange_tells_a_busy_daemon_from_no_daemon(tmp_path, monkeypatch):
+    run = tmp_path / "run"
+    run.mkdir(mode=0o700)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(run))
+    path = ipc.socket_path()
+    assert ipc.exchange({"cmd": "open"}) is None  # no socket: no daemon
+
+    stop = threading.Event()
+    _fake_daemon(path, None, stop)  # takes the request, never answers
+    with pytest.raises(ipc.DaemonBusy):
+        ipc.exchange({"cmd": "open"}, timeout=0.3)
+    stop.set()
+    path.unlink()
+
+    stop = threading.Event()
+    _fake_daemon(path, b'{"ok": true}\n', stop)
+    assert ipc.exchange({"cmd": "open"}, timeout=2) == {"ok": True}
+    stop.set()
+    path.unlink()
+
+    stop = threading.Event()
+    _fake_daemon(path, None, stop)
+    assert ipc.request({"cmd": "open"}, timeout=0.3) is None  # request() keeps its contract
+    stop.set()
+
+
+def test_a_busy_daemon_never_gets_a_second_wheel(monkeypatch, capsys):
+    from dotmorph import app
+    from dotmorph.ui import window
+
+    opened = []
+    monkeypatch.setattr(window, "run_once", lambda *a, **k: opened.append(1) or 0)
+
+    def busy(message, timeout):
+        assert timeout >= 10  # waits long enough for a loaded machine
+        raise ipc.DaemonBusy("open")
+
+    monkeypatch.setattr(ipc, "exchange", busy)
+    assert app.run_gui([]) == 0
+    assert opened == []  # the daemon has the files: no window of our own
+    assert "busy" in capsys.readouterr().err
+
+    monkeypatch.setattr(ipc, "exchange", lambda message, timeout: None)  # no daemon at all
+    assert app.run_gui([]) == 0
+    assert opened == [1]
+
+
 @pytest.mark.skipif(pytest.importorskip("PySide6") is None, reason="needs PySide6")
 def test_daemon_round_trip(tmp_path, monkeypatch):
     run = tmp_path / "run"
@@ -236,13 +309,19 @@ def test_daemon_round_trip(tmp_path, monkeypatch):
             if ipc.daemon_running():
                 break
             time.sleep(0.2)
-        info = ipc.daemon_running()
+        info = ping()
         assert info and info["visible"] is False
-        assert ipc.request({"cmd": "open", "files": [str(make_png(tmp_path / "a.png"))]})["ok"]
-        time.sleep(0.5)
-        assert ipc.daemon_running()["visible"] is True
-        assert ipc.request({"cmd": "reload"})["ok"]  # the settings window saved something
-        assert ipc.request({"cmd": "quit"})["ok"]
+        # generous timeouts: on a loaded machine "open" has been seen to take ~9 s
+        assert ipc.request({"cmd": "open", "files": [str(make_png(tmp_path / "a.png"))]},
+                           timeout=30)["ok"]
+        for _ in range(100):
+            if (ping() or {}).get("visible"):
+                break
+            time.sleep(0.1)
+        assert ping()["visible"] is True
+        # the settings window saved something
+        assert ipc.request({"cmd": "reload"}, timeout=30)["ok"]
+        assert ipc.request({"cmd": "quit"}, timeout=30)["ok"]
         proc.wait(timeout=10)
         assert proc.returncode == 0
     finally:

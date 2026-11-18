@@ -9,6 +9,11 @@ from pathlib import Path
 
 from .ui.window import QML_MAIN  # noqa: F401  (kept for tests and tools)
 
+# How long `dotmorph FILE` waits for a running daemon. It normally answers in ~0.1 s; on a
+# machine under heavy load it can take several seconds, and giving up early used to open a
+# second wheel next to the daemon's.
+OPEN_TIMEOUT = 15.0
+
 CLI_COMMANDS = {
     "convert", "formats", "doctor", "daemon", "integrate", "hotkey", "watch", "completions",
     "settings",
@@ -45,8 +50,15 @@ def run_gui(argv: list[str]) -> int:
     if not args.no_daemon:
         from .linux import ipc
 
-        reply = ipc.request({"cmd": "open", "files": files, "theme": args.theme,
-                             "reduce_motion": args.reduce_motion})
+        try:
+            reply = ipc.exchange({"cmd": "open", "files": files, "theme": args.theme,
+                                  "reduce_motion": args.reduce_motion}, timeout=OPEN_TIMEOUT)
+        except ipc.DaemonBusy:
+            # It has the files and will show the wheel when it catches up; a window of our
+            # own now would mean two wheels on screen a moment later.
+            print("dotmorph: the daemon is busy, the wheel will open in a moment",
+                  file=sys.stderr)
+            return 0
         if reply and reply.get("ok"):
             return 0
 

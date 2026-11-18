@@ -9,6 +9,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **No second wheel on a busy machine.** `dotmorph FILE` gave up on the daemon after 2 s and
+  opened a wheel of its own; on a loaded machine (seen at 9 s) the daemon then opened its
+  wheel too. It now waits up to 15 s for a daemon that took the files, and only opens its own
+  window when no daemon is there at all.
+
+### Changed
+
+- pytest and ruff moved from the `dev` extra to a PEP 735 dependency group, so they're no
+  longer published as DotMorph dependencies on PyPI. Install them with
+  `pip install -e '.[gui]' --group dev` (pip 25.1+).
+
 ## [2.0.3] - 2026-10-24
 
 ### Added
@@ -450,6 +465,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[Unreleased]: https://github.com/kareem2099/DotMorph/compare/v2.0.3...HEAD
 [2.0.3]: https://github.com/kareem2099/DotMorph/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/kareem2099/DotMorph/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/kareem2099/DotMorph/compare/v2.0.0...v2.0.1

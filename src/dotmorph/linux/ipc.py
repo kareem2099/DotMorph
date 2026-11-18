@@ -28,8 +28,14 @@ def socket_path() -> Path:
     return short / f"{digest}.sock"
 
 
-def request(message: dict, timeout: float = 2.0) -> dict | None:
-    """Send one request; returns the reply, or None when no daemon answers."""
+class DaemonBusy(Exception):
+    """The daemon accepted the request but didn't answer in time: it's alive, just slow (a
+    busy machine can take seconds to show the wheel). Not the same as "no daemon"."""
+
+
+def exchange(message: dict, timeout: float = 2.0) -> dict | None:
+    """Send one request. Returns the reply, or None when no daemon is there to take it;
+    raises DaemonBusy when one took it but didn't reply within `timeout`."""
     path = socket_path()
     if not path.exists():
         return None
@@ -39,9 +45,22 @@ def request(message: dict, timeout: float = 2.0) -> dict | None:
             sock.connect(str(path))
             sock.sendall((json.dumps(message) + "\n").encode())
             with sock.makefile("r", encoding="utf-8") as reader:
-                line = reader.readline()
+                try:
+                    line = reader.readline()
+                except TimeoutError as exc:
+                    raise DaemonBusy(message.get("cmd", "")) from exc
         return json.loads(line) if line else None
+    except DaemonBusy:
+        raise
     except (OSError, ValueError):
+        return None
+
+
+def request(message: dict, timeout: float = 2.0) -> dict | None:
+    """Send one request; returns the reply, or None when no daemon answers in time."""
+    try:
+        return exchange(message, timeout)
+    except DaemonBusy:
         return None
 
 
