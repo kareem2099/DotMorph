@@ -103,6 +103,7 @@ Item {
             var away = tab.onLeft ? mx : -mx
             if (away > 60) {  // pulled off the edge: become the full wheel again
                 dock.undock()
+                tab.theme.sfx("snap")
                 var w = tab.Window.window
                 if (w) w.startSystemMove()
             } else {

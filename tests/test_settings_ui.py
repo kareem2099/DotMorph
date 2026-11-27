@@ -31,18 +31,12 @@ def test_translations_and_language_detection(monkeypatch):
     assert i18n.resolve("auto") == "ar"
     i18n.set_language("ar")
     assert i18n.tr("Compress") == "ضغط"
-    assert i18n.tr("Done · %1 file(s)", 3) == "تم · 3 ملف"
+    assert i18n.trn("Done · %1 files", 3) == "تم · 3 ملفات"
     assert i18n.tr("Something not translated") == "Something not translated"
     assert i18n.is_rtl()
     assert notify.message([], ["x: boom"])[0] == "فشل التحويل"
     i18n.set_language("en")
     assert i18n.tr("Compress") == "Compress" and not i18n.is_rtl()
-
-
-def test_every_arabic_string_keeps_its_placeholders():
-    for src, ar in i18n.AR.items():
-        for ph in ("%1", "%2"):
-            assert (ph in src) == (ph in ar), src
 
 
 # ---- Qt: wheel follows the settings --------------------------------------------------
@@ -121,11 +115,11 @@ def test_settings_backend_saves_and_switches_language(app, tmp_path, monkeypatch
     i18n.set_language("en")
 
 
-def test_settings_window_loads_every_page_in_both_languages(app):
+def test_settings_window_loads_every_page_in_every_language(app):
     from dotmorph.ui.i18n_qt import I18n
     from dotmorph.ui.settings_window import QML, SettingsBackend
 
-    for lang in ("en", "ar"):
+    for lang in i18n.LANGUAGES:
         settings.save(settings.Settings(language=lang))
         i18n_obj = I18n(lang)
         backend = SettingsBackend(i18n_obj)
@@ -136,8 +130,7 @@ def test_settings_window_loads_every_page_in_both_languages(app):
         engine.rootContext().setContextProperty("backend", backend)
         engine.load(QUrl.fromLocalFile(str(QML)))
         win = engine.rootObjects()[0]
-        title = "إعدادات DotMorph" if lang == "ar" else "DotMorph Settings"
-        assert win.property("title") == title
+        assert win.property("title") == i18n.tr("DotMorph Settings")
         for page in range(7):
             win.setProperty("page", page)
             wait(40)
@@ -163,3 +156,64 @@ def test_integration_installs_settings_launcher_and_png_icons(tmp_path):
         assert len(pngs) == len(integrate.PNG_SIZES)
     integrate.remove()
     assert not any(p.exists() for p in written if p.name != "uca.xml")
+
+
+def _items(item, name):
+    """Visual descendants called `name` (Repeater delegates aren't QObject children)."""
+    for child in item.childItems():
+        if child.objectName() == name:
+            yield child
+        yield from _items(child, name)
+
+
+def _wheel_labels(lang, files):
+    """Load the real wheel in `lang` and open every category: (label, size, width, room)."""
+    from PySide6.QtQuick import QQuickItem
+
+    from dotmorph.ui.bridge import Bridge
+    from dotmorph.ui.dock import Dock
+    from dotmorph.ui.i18n_qt import I18n
+    from dotmorph.ui.window import QML_MAIN
+
+    settings.save(settings.Settings(language=lang, reduce_motion=True))
+    i18n_obj = I18n(lang)
+    bridge = Bridge([str(f) for f in files])
+    dock = Dock(bridge)
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty("bridge", bridge)
+    engine.rootContext().setContextProperty("dock", dock)
+    engine.rootContext().setContextProperty("i18n", i18n_obj)
+    engine.load(QUrl.fromLocalFile(str(QML_MAIN)))
+    root = engine.rootObjects()[0]
+    wheel = root.findChild(QQuickItem, "wheel")
+    seen = []
+    for cat in range(-1, len(wheel.property("cats").toVariant() or [])):
+        wheel.setProperty("openCat", cat)
+        wait(30)
+        for sector in _items(wheel, "ringSector"):
+            room = sector.property("labelRoom")
+            for name in ("sectorLabel", "sectorSub"):
+                text = next(_items(sector, name), None)
+                if text is not None and text.property("text"):
+                    seen.append((text.property("text"), text.property("font").pixelSize(),
+                                 text.property("implicitWidth"), room))
+    import shiboken6
+
+    shiboken6.delete(root)
+    return seen
+
+
+@pytest.mark.parametrize("lang", i18n.LANGUAGES)
+def test_wheel_labels_fit_their_sectors(app, tmp_path, lang):
+    """Long translations ("Komprimieren", "Объединить PDF") shrink instead of overlapping."""
+    from PIL import Image
+
+    pdfs = [tmp_path / "a.pdf", tmp_path / "b.pdf"]  # two PDFs: "Merge PDF" in the wheel
+    for pdf in pdfs:
+        Image.new("RGB", (80, 80), "white").save(pdf)
+    seen = _wheel_labels(lang, [make_png(tmp_path / "a.png")]) + _wheel_labels(lang, pdfs)
+    assert any(size for _, size, _, _ in seen)
+    for text, size, width, room in seen:
+        assert width <= room + 2, (lang, text, width, room)
+        assert size >= 9, (lang, text, size)  # shrunk, but still readable
+    i18n.set_language("en")

@@ -77,6 +77,7 @@ MIME = {
     "xls": ["application/vnd.ms-excel"],
     "ods": ["application/vnd.oasis.opendocument.spreadsheet"],
     "csv": ["text/csv"], "ps": ["application/postscript"],
+    "srt": ["application/x-subrip"], "vtt": ["text/vtt"],
 }
 
 
@@ -85,10 +86,11 @@ def manifest_path() -> Path:
 
 
 def mime_types(every: bool = False) -> list[str]:
-    """MIME types DotMorph opens: what works here, or (packages) every known format."""
-    from ..core.formats import FORMATS
+    """MIME types DotMorph opens: what works here, or (packages) every format some engine
+    reads. Output-only formats (SRT, VTT subtitles) are left out: nothing opens them."""
+    from ..core.backends import ALL
 
-    exts = FORMATS if every else registry.matrix()
+    exts = {src for b in ALL for src in b.potential_pairs()} if every else registry.matrix()
     return sorted({mime for ext in exts for mime in MIME.get(ext, [])})
 
 
@@ -123,6 +125,18 @@ def _write(path: Path, text: str, executable: bool = False) -> Path:
     return path
 
 
+def localized(field: str, text: str) -> str:
+    """`Field=text` plus `Field[xx]=` for every language that translates it."""
+    from ..i18n import LANGUAGES, catalog
+
+    lines = [f"{field}={text}"]
+    for lang in LANGUAGES[1:]:
+        value = catalog(lang).get(text)
+        if isinstance(value, str) and value != text:
+            lines.append(f"{field}[{lang.replace('-', '_')}]={value}")
+    return "\n".join(lines) + "\n"
+
+
 def desktop_entry(command: str | None = None, every: bool = False) -> str:
     """The app launcher. `command`: Exec program for packages ("dotmorph"); by default the
     absolute path of this install, so it works without PATH changes."""
@@ -131,10 +145,9 @@ def desktop_entry(command: str | None = None, every: bool = False) -> str:
         "[Desktop Entry]\n"
         "Type=Application\n"
         "Name=DotMorph\n"
-        "GenericName=File Converter\n"
-        "Comment=Convert images, PDF, video, audio and documents from a radial menu\n"
-        "Comment[ar]=حوّل الصور وPDF والفيديو والصوت والمستندات من قائمة دائرية\n"
-        f"Exec={run('%F')}\n"
+        + localized("GenericName", "File Converter")
+        + localized("Comment", "Convert images, PDF, video, audio and documents from a radial menu")
+        + f"Exec={run('%F')}\n"
         "Icon=dotmorph\n"
         "Terminal=false\n"
         "StartupNotify=false\n"
@@ -144,9 +157,8 @@ def desktop_entry(command: str | None = None, every: bool = False) -> str:
         "Actions=settings;\n"
         "\n"
         "[Desktop Action settings]\n"
-        "Name=Settings\n"
-        "Name[ar]=الإعدادات\n"
-        f"Exec={run('settings')}\n"
+        + localized("Name", "Settings")
+        + f"Exec={run('settings')}\n"
     )
 
 
@@ -156,10 +168,9 @@ def settings_entry(command: str | None = None) -> str:
     return (
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=DotMorph Settings\n"
-        "Name[ar]=إعدادات DotMorph\n"
-        "Comment=Theme, language, shortcut, file-manager menus and watch folders\n"
-        f"Exec={run('settings')}\n"
+        + localized("Name", "DotMorph Settings")
+        + localized("Comment", "Theme, language, shortcut, file-manager menus and watch folders")
+        + f"Exec={run('settings')}\n"
         "Icon=dotmorph\n"
         "Terminal=false\n"
         "Categories=Settings;\n"

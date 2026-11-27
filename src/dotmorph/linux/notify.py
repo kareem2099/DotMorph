@@ -40,19 +40,19 @@ def _supports_actions() -> bool:
 
 def message(outputs: Sequence[Path], errors: Sequence[str]) -> tuple[str, str]:
     """(summary, body) for a finished job, in the user's language."""
-    from ..i18n import tr
+    from ..i18n import tr, trn
 
     if errors and not outputs:
         summary = (tr("Conversion failed") if len(errors) == 1
-                   else tr("%1 conversions failed", len(errors)))
+                   else trn("%1 conversions failed", len(errors)))
         return summary, errors[0]
     if errors:
-        return tr("Converted %1 file(s), %2 failed", len(outputs), len(errors)), errors[0]
+        return trn("Converted %1 files, %2 failed", len(outputs), len(errors)), errors[0]
     if len(outputs) == 1:
         return tr("Converted"), outputs[0].name
     names = ", ".join(p.name for p in outputs[:3])
-    more = tr(" and %1 more", len(outputs) - 3) if len(outputs) > 3 else ""
-    return tr("Converted %1 files", len(outputs)), names + more
+    more = trn(" and %1 more", len(outputs) - 3) if len(outputs) > 3 else ""
+    return trn("Converted %1 files", len(outputs)), names + more
 
 
 def show_items_arg(paths: Sequence[Path]) -> str:

@@ -27,6 +27,9 @@ FIELDS = {
     "reduceMotion": "reduce_motion",
     "language": "language",
     "notify": "notify",
+    "sound": "sound",
+    "soundVolume": "sound_volume",
+    "soundTicks": "sound_ticks",
     "outputDir": "output_dir",
     "quality": "quality",
     "dpi": "dpi",
@@ -69,6 +72,9 @@ class SettingsBackend(QObject):
     reduceMotion = Property(bool, _get("reduceMotion"), notify=changed)
     language = Property(str, _get("language"), notify=changed)
     notify = Property(str, _get("notify"), notify=changed)
+    sound = Property(bool, _get("sound"), notify=changed)
+    soundVolume = Property(int, _get("soundVolume"), notify=changed)
+    soundTicks = Property(bool, _get("soundTicks"), notify=changed)
     outputDir = Property(str, _get("outputDir"), notify=changed)
     quality = Property(int, _get("quality"), notify=changed)
     dpi = Property(int, _get("dpi"), notify=changed)
@@ -76,6 +82,15 @@ class SettingsBackend(QObject):
     strip = Property(bool, _get("strip"), notify=changed)
     quickActions = Property("QVariantList", _get("quickActions"), notify=changed)
     del _get
+
+    @Slot()
+    def testSound(self) -> None:
+        """The "Play test" button: the done chime at the chosen volume, even if muted."""
+        from .sound import Player
+
+        if not hasattr(self, "_player"):
+            self._player = Player(lambda: self._s)
+        self._player.play("chime", force=True)
 
     @Slot(str, "QVariant")
     def set(self, name: str, value) -> None:

@@ -1,4 +1,4 @@
-.TH DOTMORPH 1 "2026-11-18" "DotMorph 2.0.4" "User Commands"
+.TH DOTMORPH 1 "2026-11-27" "DotMorph 2.2.0" "User Commands"
 .SH NAME
 dotmorph \- convert files from a radial menu, the file manager or the terminal
 .SH SYNOPSIS
@@ -16,7 +16,7 @@ Convert files from the terminal.
 .RS
 .TP
 \fB\-\-to\fR \fITARGET\fR
-format (png, mp4, pdf, ...) or tool: compress, resize\-50, rotate\-90, strip, mute, merge\-pdf
+format (png, mp4, pdf, ...) or tool: compress, resize\-50, rotate\-90, strip, mute, merge\-pdf, copy\-text, ocr, fit\-10mb, fit\-16mb, fit\-25mb
 .RE
 .RS
 .TP
@@ -65,6 +65,16 @@ give up on one file after N seconds
 .RE
 .RS
 .TP
+\fB\-\-fit\fR \fISIZE\fR
+make each file at most SIZE (8M, 10MB, 500K): video, audio, images, PDF; \-\-to is then optional
+.RE
+.RS
+.TP
+\fB\-\-lang\fR \fICODE\fR
+language for transcription and OCR (en, ar, de, ar+en for OCR; default: detect / English plus the interface language)
+.RE
+.RS
+.TP
 \fB\-q\fR, \fB\-\-quiet\fR
 no progress bar
 .RE
@@ -77,6 +87,19 @@ desktop notification when done (with an Open folder button)
 .TP
 \fB\-n\fR, \fB\-\-dry\-run\fR
 show what would be converted, and how, without doing it
+.RE
+.TP
+\fBwhisper\fR
+Speech models for transcription (audio/video \-> text).
+.RS
+.TP
+\fB\-\-download\fR \fIMODEL\fR
+download a model: tiny, base (default), small, medium, large\-v3\-turbo
+.RE
+.RS
+.TP
+\fB\-\-list\fR
+models available and installed
 .RE
 .TP
 \fBformats\fR

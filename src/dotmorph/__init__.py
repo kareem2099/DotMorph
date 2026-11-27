@@ -1,3 +1,3 @@
 """DotMorph: radial-menu file converter for Linux."""
 
-__version__ = "2.0.4"
+__version__ = "2.2.0"

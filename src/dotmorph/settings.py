@@ -12,11 +12,12 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 from .core.common import ConversionError, Options, parse_resize
+from .i18n import LANGUAGES as _i18n_languages
 
 DPI_CHOICES = (0, 72, 150, 300)  # 0 = automatic (PDF 150, SVG original size)
 RESIZE_CHOICES = ("", "75%", "50%", "25%")
 THEMES = ("dark", "light", "glass")
-LANGUAGES = ("auto", "en", "ar")
+LANGUAGES = ("auto", *_i18n_languages)
 NOTIFY = ("long", "always", "never")  # long: only after jobs the menu can't show
 
 
@@ -38,6 +39,9 @@ class Settings:
     reduce_motion: bool = False
     language: str = "auto"
     notify: str = "long"
+    sound: bool = True  # UI sounds (see ui/sound.py)
+    sound_volume: int = 70  # percent
+    sound_ticks: bool = False  # a tick on every hovered sector: off, it can get tiring
     output_dir: str = ""  # empty: next to the source file
     # the wheel's contents
     pinned: list[str] = field(default_factory=list)  # shown first
@@ -61,6 +65,9 @@ class Settings:
         self.reduce_motion = bool(self.reduce_motion)
         self.language = self.language if self.language in LANGUAGES else "auto"
         self.notify = self.notify if self.notify in NOTIFY else "long"
+        self.sound = bool(self.sound)
+        self.sound_volume = min(100, max(0, int(self.sound_volume)))
+        self.sound_ticks = bool(self.sound_ticks)
         self.output_dir = str(self.output_dir or "")
         self.pinned = _names(self.pinned)
         self.hidden = [n for n in _names(self.hidden) if n not in self.pinned]

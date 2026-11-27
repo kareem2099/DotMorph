@@ -3,18 +3,19 @@ _dotmorph() {
     local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
     local sub="${COMP_WORDS[1]}"
     case "$prev" in
-        --to) COMPREPLY=($(compgen -W "png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt epub xlsx ods csv pptx odp bmp tiff ico compress resize-50 rotate-90 strip mute merge-pdf" -- "$cur")); return;;
+        --to) COMPREPLY=($(compgen -W "png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt srt vtt epub xlsx ods csv pptx odp bmp tiff ico compress fit-10mb fit-16mb fit-25mb resize-50 rotate-90 strip mute merge-pdf copy-text ocr" -- "$cur")); return;;
         -o|--out) COMPREPLY=($(compgen -d -- "$cur")); return;;
         --theme) COMPREPLY=($(compgen -W "dark light glass" -- "$cur")); return;;
         --preset) COMPREPLY=($(compgen -W "email print share thumb web" -- "$cur")); return;;
     esac
     if [[ $COMP_CWORD -eq 1 ]]; then
-        COMPREPLY=($(compgen -W "convert formats settings completions doctor daemon integrate hotkey watch --theme --reduce-motion --clipboard --no-daemon -h -V" -- "$cur"))
+        COMPREPLY=($(compgen -W "convert whisper formats settings completions doctor daemon integrate hotkey watch --theme --reduce-motion --clipboard --no-daemon -h -V" -- "$cur"))
         return
     fi
     if [[ "$cur" == -* ]]; then
         case "$sub" in
-            convert) COMPREPLY=($(compgen -W "-h --help --to --preset -o --out --dpi --quality --resize --strip --overwrite -j --jobs --timeout -q --quiet --notify -n --dry-run" -- "$cur"));;
+            convert) COMPREPLY=($(compgen -W "-h --help --to --preset -o --out --dpi --quality --resize --strip --overwrite -j --jobs --timeout --fit --lang -q --quiet --notify -n --dry-run" -- "$cur"));;
+            whisper) COMPREPLY=($(compgen -W "-h --help --download --list" -- "$cur"));;
             formats) COMPREPLY=($(compgen -W "-h --help --missing" -- "$cur"));;
             settings) COMPREPLY=($(compgen -W "-h --help" -- "$cur"));;
             completions) COMPREPLY=($(compgen -W "-h --help --install" -- "$cur"));;

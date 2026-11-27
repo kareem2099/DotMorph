@@ -7,6 +7,13 @@
   <name>DotMorph</name>
   <summary>Convert any file from a radial menu</summary>
   <summary xml:lang="ar">حوّل أي ملف من قائمة دائرية</summary>
+  <summary xml:lang="de">Jede Datei über ein Kreismenü konvertieren</summary>
+  <summary xml:lang="es">Convierte cualquier archivo desde un menú radial</summary>
+  <summary xml:lang="fr">Convertissez n'importe quel fichier depuis un menu circulaire</summary>
+  <summary xml:lang="it">Converti qualsiasi file da un menu radiale</summary>
+  <summary xml:lang="pt_BR">Converta qualquer arquivo a partir de um menu radial</summary>
+  <summary xml:lang="ru">Конвертируйте любой файл из кругового меню</summary>
+  <summary xml:lang="tr">Herhangi bir dosyayı dairesel bir menüden dönüştürün</summary>
   <developer id="dev.dotsuite">
     <name>FreeRave (DotSuite)</name>
   </developer>
@@ -20,8 +27,14 @@
       <li>Two-ring wheel drawn on the GPU, with an edge dock like Android's edge panels</li>
       <li>Right-click actions in Nautilus, Thunar, Dolphin and Nemo, and a global hotkey</li>
       <li>Compress, resize, rotate, strip metadata, mute video, merge into one PDF</li>
+      <li>Fit photos, videos, songs and PDFs under 10, 16 or 25 MB for Discord, WhatsApp
+        or e-mail</li>
+      <li>OCR: text from screenshots and scans, or a searchable PDF</li>
+      <li>Offline transcription of audio and video to text and subtitles with whisper.cpp</li>
+      <li>Soft UI sounds that are easy to turn off</li>
       <li>Watch folders that convert new files automatically</li>
-      <li>English and Arabic interface, dark, light and glass themes</li>
+      <li>In English, Arabic, German, Spanish, French, Italian, Brazilian Portuguese,
+        Russian and Turkish, with dark, light and glass themes</li>
       <li>Fully local: no uploads, no telemetry</li>
     </ul>
   </description>
@@ -64,6 +77,9 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.2.0" date="2026-11-27">
+      <url>https://github.com/kareem2099/DotMorph/releases/tag/v2.2.0</url>
+    </release>
     <release version="2.0.4" date="2026-11-18">
       <url>https://github.com/kareem2099/DotMorph/releases/tag/v2.0.4</url>
     </release>

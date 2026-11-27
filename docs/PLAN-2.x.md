@@ -6,8 +6,8 @@ notice.
 
 | Release | Theme | Contents |
 |---|---|---|
-| **2.1** | Voice | Sound effects (F), 7 new languages (G) |
-| **2.2** | Smarter conversions | "Fit under X MB" (H), OCR (I), transcription (I2) |
+| **2.1** | Voice | Sound effects (F), 7 new languages (G) — shipped in 2.2.0 |
+| **2.2** | Smarter conversions | "Fit under X MB" (H), OCR (I), transcription (I2) — shipped in 2.2.0 |
 | **2.3** | Yours and native | Custom actions (J), native Wayland (K) |
 
 ---
@@ -22,8 +22,9 @@ easy to turn off, and silent where the desktop says "no event sounds".
   a bundled FFmpeg), so it's out.
 - **libcanberra through ctypes**, the same approach as librsvg: GNOME's own event-sound library,
   already on practically every desktop. `ca_context_play()` with `CA_PROP_MEDIA_FILENAME`,
-  `CA_PROP_EVENT_ID` and `CA_PROP_CANBERRA_VOLUME`. It respects GNOME's "event sounds" switch
-  (`org.gnome.desktop.sound event-sounds`) on its own.
+  `CA_PROP_EVENT_ID` and `CA_PROP_CANBERRA_VOLUME`. Plain libcanberra does *not* read GNOME's
+  "event sounds" switch (only its GTK module does), so DotMorph checks
+  `org.gnome.desktop.sound event-sounds` itself.
 - Fallback when libcanberra is missing: `pw-play` / `paplay` in the background. Neither: silent,
   never an error.
 - New `ui/sound.py`: `Sound.play(name)` exposed to QML as a slot. Plays are non-blocking and

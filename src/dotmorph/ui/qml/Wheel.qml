@@ -77,6 +77,8 @@ Item {
     }
 
     onSectorsChanged: { hoverInner = -1; hoverOuter = -1; openCat = -1; phase = "idle" }
+    onHoverInnerChanged: if (hoverInner >= 0 && phase === "idle") theme.sfx("tick")
+    onHoverOuterChanged: if (hoverOuter >= 0 && phase === "idle") theme.sfx("tick")
     Connections {
         target: bridge
         function onBusyChanged() {
@@ -103,7 +105,9 @@ Item {
         interval: 400
         onTriggered: {
             wheel.moving = false
-            if (dock.mode === "free") dock.dragEnded()  // touching a screen edge docks it
+            if (dock.mode !== "free") return
+            dock.dragEnded()  // touching a screen edge docks it
+            if (dock.mode !== "free") wheel.theme.sfx("snap")
         }
     }
     Connections {
@@ -114,11 +118,13 @@ Item {
 
     function celebrate() {
         phase = "done"
+        theme.sfx("chime")
         hub.pulse()
         if (theme.motion > 0) burst.burst(110)
     }
     function fail() {
         phase = "failed"
+        theme.sfx("thud")
         hub.pulse()
         shake.restart()
     }
@@ -261,7 +267,7 @@ Item {
                 label: shortcut ? modelData.items[0].label : modelData.label
                 category: modelData.category
                 showIcon: !wheel.flat
-                sub: wheel.flat ? "" : (shortcut ? modelData.label : wheel.theme.t("%1 options", modelData.items.length))
+                sub: wheel.flat ? "" : (shortcut ? modelData.label : wheel.theme.tn("%1 options", modelData.items.length))
                 hovered: wheel.hoverInner === index
                 selected: !wheel.flat && wheel.openCat === index
                 busy: wheel.phase !== "idle"
@@ -415,6 +421,7 @@ Item {
                     }
                     if (dragged && away > 90) {
                         dock.undock()
+                        wheel.theme.sfx("snap")
                         wheel.startMove()
                     } else if (dragged) {
                         dock.slide(my)

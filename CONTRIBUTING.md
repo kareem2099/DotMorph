@@ -64,13 +64,28 @@ fake `gsettings`. Please keep it that way in new tests.
 
 ## Translations
 
-User-facing text lives in `src/dotmorph/i18n.py`. The English string is the key, and Arabic
-is in `AR`. Keep `%1` and `%2` placeholders in the translation (a test checks this).
+Each language is one JSON file in `src/dotmorph/locales/` (`de.json`, `ru.json`, …). The
+English string is the key and the value is the translation. Keep `%1` and `%2` placeholders
+(a test checks this).
 
-New languages are welcome:
-1. Add a catalog next to `AR`, register it in `CATALOGS`, and add it to `LANGUAGES` in
-   `settings.py`.
-2. If the language is written right to left, add it to `RTL_LANGUAGES`.
+Text with a count in it has plural forms instead of one string, picked by the language's
+[CLDR plural rules](https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html):
+
+```json
+"%1 files": {"one": "%1 Datei", "other": "%1 Dateien"}
+```
+
+Russian uses `one` / `few` / `many` / `other`, Arabic `zero` / `one` / `two` / `few` / `many`
+/ `other`, French and Portuguese count 0 as `one`. The rules are in `i18n.plural_category()`.
+
+To fix a translation, edit the JSON. To add a language:
+1. Copy `de.json` to `<code>.json` and translate every value.
+2. Add the language to `NATIVE_NAMES` in `i18n.py` (its name in its own language) and, if
+   needed, its plural rule to `plural_category()`.
+3. If it is written right to left, add it to `RTL_LANGUAGES`.
+4. Run `pytest tests/test_locales.py tests/test_settings_ui.py`. They check that nothing is
+   missing, that placeholders and plural forms are right, and that every wheel label fits
+   its sector (long words shrink, but not below 9 px: pick a shorter word if one fails).
 
 Commands, format names and engine error messages stay English.
 

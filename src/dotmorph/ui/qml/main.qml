@@ -88,7 +88,7 @@ Window {
             closeTimer.restart()
         }
         function onSectorsChanged() { closeTimer.stop() }
-        function onCancelled() { wheel.phase = "idle" }
+        function onCancelled() { wheel.phase = "idle"; theme.sfx("cancel") }
         function onSummoned() { win.reopen() }
     }
     Timer { id: closeTimer; onTriggered: win.close() }
@@ -123,6 +123,9 @@ Window {
         Component.onCompleted: openAnim.start()
         ParallelAnimation {
             id: openAnim
+            // not while the daemon builds the hidden window at login, and not for the half
+            // wheel peeking out of the edge tab (a hover does that, often)
+            onStarted: if ((win.visible || !bridge.persistent) && !win.docked && !win.peeking) theme.sfx("bloom")
             NumberAnimation { target: stage; property: "scale"; to: 1; duration: theme.ms(380); easing.type: Easing.OutBack; easing.overshoot: 1.4 }
             NumberAnimation { target: stage; property: "opacity"; to: 1; duration: theme.ms(200) }
         }
@@ -152,7 +155,7 @@ Window {
             half: win.peeking
             side: dock.side
             isDragging: dropArea.containsDrag
-            onPicked: (target) => bridge.convertTo(target)
+            onPicked: (target) => { theme.sfx("click"); bridge.convertTo(target) }
             onDismissed: win.close()
         }
 

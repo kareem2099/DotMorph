@@ -7,6 +7,7 @@ to a real transcode.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from functools import lru_cache
@@ -17,14 +18,16 @@ from ..common import (
     Job,
     Options,
     finalize,
+    fit_limit,
     keep_smaller,
     last_error_line,
     out_dir,
     parse_resize,
     run_tool,
+    too_big,
     workdir,
 )
-from ..formats import AUDIO_FORMATS, TOOLS, VIDEO_FORMATS, normalize_ext
+from ..formats import AUDIO_FORMATS, FIT_TOOLS, TOOLS, VIDEO_FORMATS, normalize_ext
 from ..registry import Backend, Requirement
 
 FFMPEG = Requirement("ffmpeg", {"apt": "ffmpeg", "dnf": "ffmpeg-free", "pacman": "ffmpeg",
@@ -35,6 +38,9 @@ AUDIO_OUT = ("mp3", "m4a", "ogg", "opus", "flac", "wav")
 REMUXABLE = {"mp4", "mkv", "mov", "m4v"}
 VIDEO_TOOLS = {"compress", "resize-50", "rotate-90", "mute", "strip"}
 COMPRESSIBLE = {"mp4", "mkv", "mov", "m4v", "webm"}
+FIT_AUDIO = {"mp3", "m4a", "ogg", "opus"}  # lossy formats a bitrate can size
+FIT_AUDIO_ENCODER = {"mp3": ("libmp3lame",), "m4a": ("aac",), "ogg": ("libvorbis",),
+                     "opus": ("libopus",)}
 
 # Preferred encoder first; the first one this ffmpeg build has is used.
 H264 = ("libx264", "libopenh264", "mpeg4")
@@ -183,11 +189,15 @@ class FFmpegBackend(Backend):
             actions = (set(VIDEO_OUT) | {"gif"} | set(AUDIO_OUT) | VIDEO_TOOLS) - {src}
             if src not in COMPRESSIBLE:
                 actions.discard("compress")
+            else:
+                actions |= set(FIT_TOOLS)
             if src not in VIDEO_OUT and src != "m4v":
                 actions -= {"resize-50", "rotate-90", "mute", "strip"}
             pairs[src] = actions
         for src in AUDIO_FORMATS:
             pairs[src] = (set(AUDIO_OUT) - {src}) | ({"strip"} if src in AUDIO_OUT else set())
+            if src in FIT_AUDIO:
+                pairs[src] |= set(FIT_TOOLS)
         pairs["gif"] = {"mp4", "webm"}
         return pairs
 
@@ -217,6 +227,11 @@ class FFmpegBackend(Backend):
 
         with workdir(out) as tmpdir:
             tmp = tmpdir / name
+            limit = fit_limit(action, opts)
+            if limit:
+                self._fit(job, source, tmp, tmpdir, total, limit)
+                ctx.progress(1)
+                return [finalize(tmp, out / name, opts.overwrite)]
             attempts = self._plans(job, source, target)
             last_err = ""
             for args in attempts:
@@ -267,18 +282,111 @@ class FFmpegBackend(Backend):
             plans.insert(0, copy)
         return plans
 
+    # ---- fit under X MB -------------------------------------------------------------------
+
+    def _fit(self, job: Job, source: str, tmp: Path, tmpdir: Path, total: float,
+             limit: int) -> None:
+        """Encode so the result is at most `limit` bytes: the bitrate comes from the
+        duration; if the file still comes out too big, retry a little lower."""
+        src = job.src
+        if src.stat().st_size <= limit and not job.opts.strip and not job.opts.resize:
+            shutil.copy2(src, tmp)  # already fits
+            return
+        if total <= 0:
+            raise ConversionError("can't read the length of this file (is ffprobe installed?)")
+        budget = limit * 8 / 1000 / total * 0.96  # kbit/s for everything, minus container
+        meta = ["-map_metadata", "-1"] if job.opts.strip else []
+        # each retry fills part of what's left of the bar, so it never goes backwards
+        span = (0.0, 0.8)
+
+        def next_span(s: tuple[float, float]) -> tuple[float, float]:
+            return s[1], s[1] + (0.99 - s[1]) * 0.75
+
+        if source in FIT_AUDIO:
+            enc = _pick(FIT_AUDIO_ENCODER[source])
+            if enc is None:
+                raise ConversionError(f"this ffmpeg build can't encode {source}")
+            kbps = min(320.0, budget)
+            for _ in range(4):
+                if kbps < 24:
+                    raise too_big(limit, "audio")
+                code, err = self._ffmpeg(src, ["-vn", "-map", "0:a:0", "-c:a", enc,
+                                               "-b:a", f"{int(kbps)}k", *meta], tmp, total, job,
+                                         span=span)
+                if code != 0 or not tmp.exists():
+                    raise ConversionError(_explain(err))
+                if tmp.stat().st_size <= limit:
+                    return
+                kbps *= 0.92 * limit / tmp.stat().st_size
+                span = next_span(span)
+            raise too_big(limit, "audio")
+
+        audio = 96 if budget > 600 else 64 if budget > 250 else 32
+        video = budget - audio
+        for _ in range(4):
+            if video < 60:
+                raise ConversionError(
+                    f"{total / 60:.0f} min of video is too long to fit in {limit / 1e6:g} MB")
+            height = None if video > 1800 else 720 if video > 700 else 480 if video > 300 else 360
+            self._fit_video(job, source, tmp, tmpdir, total, video, audio, height, meta, span)
+            if tmp.stat().st_size <= limit:
+                return
+            video *= 0.92 * limit / tmp.stat().st_size
+            span = next_span(span)
+        raise too_big(limit, "video")
+
+    def _fit_video(self, job: Job, source: str, tmp: Path, tmpdir: Path, total: float,
+                   video_kbps: float, audio_kbps: int, height: int | None,
+                   meta: list[str], span: tuple[float, float] = (0.0, 0.99)) -> None:
+        vf = ["-vf", f"scale=-2:'min({height},ih)'"] if height else []
+        rate = ["-b:v", f"{int(video_kbps)}k", "-maxrate", f"{int(video_kbps * 1.5)}k",
+                "-bufsize", f"{int(video_kbps * 2)}k"]
+        if source == "webm":
+            enc = _pick(VP9)
+            if not enc:
+                raise ConversionError("this ffmpeg has no VP9/VP8 encoder")
+            codec = ["-c:v", enc, "-deadline", "good", "-cpu-used", "4", "-row-mt", "1"]
+            acodec = ["-c:a", _pick(("libopus", "libvorbis")) or "libopus"]
+        else:
+            enc = _pick(H264) or "mpeg4"
+            codec = ["-c:v", enc, "-pix_fmt", "yuv420p"]
+            if enc == "libx264":
+                codec += ["-preset", "medium"]
+            acodec = ["-c:a", "aac"]
+        log = ["-passlogfile", str(tmpdir / "pass")]
+        two_pass = enc in ("libx264", "libvpx-vp9", "libvpx")
+        lo, hi = span
+        mid = lo + (hi - lo) * 0.45  # the first pass is about half the work
+        maps = ["-map", "0:V:0", "-map", "0:a?"]
+        if two_pass:  # first pass: analyse only (first ~half of the progress bar)
+            code, err = self._ffmpeg(job.src, ["-map", "0:V:0", *vf, *codec, *rate, "-pass", "1",
+                                               *log, "-an", "-f", "null"], Path(os.devnull),
+                                     total, job, span=(lo, mid))
+            if code != 0:
+                raise ConversionError(_explain(err))
+        second = ["-pass", "2", *log] if two_pass else []
+        tmp.unlink(missing_ok=True)
+        code, err = self._ffmpeg(job.src, [*maps, *vf, *codec, *rate, *second, *acodec,
+                                           "-b:a", f"{audio_kbps}k", *meta,
+                                           *_container(source)], tmp, total, job,
+                                 span=(mid if two_pass else lo, hi))
+        if code != 0 or not tmp.exists():
+            raise ConversionError(_explain(err))
+
     def _ffmpeg(
-        self, src: Path, args: list[str], dest: Path, total: float, job: Job
+        self, src: Path, args: list[str], dest: Path, total: float, job: Job,
+        span: tuple[float, float] = (0.0, 0.99),
     ) -> tuple[int, str]:
         exe = shutil.which("ffmpeg")
         if exe is None:
             raise ConversionError("ffmpeg not found")
         ctx = job.ctx
+        lo, hi = span
 
         def on_line(line: str) -> None:
             key, _, value = line.partition("=")
             if key in ("out_time_us", "out_time_ms") and total > 0 and value.isdigit():
-                ctx.progress(0.99 * int(value) / 1_000_000 / total)
+                ctx.progress(lo + (hi - lo) * min(1.0, int(value) / 1_000_000 / total))
 
         cmd = [exe, "-hide_banner", "-nostdin", "-y", "-i", str(src), *args,
                "-progress", "pipe:1", "-nostats", str(dest)]

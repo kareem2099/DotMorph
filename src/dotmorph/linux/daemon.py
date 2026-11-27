@@ -90,7 +90,8 @@ def serve(theme: str | None = None, reduce_motion: bool | None = None) -> int:
                     "visible": bool(menu.window.isVisible())}
         if cmd == "open":
             files = [str(f) for f in message.get("files", [])]
-            menu.summon(files, message.get("theme"), message.get("reduce_motion"))
+            menu.summon(files, message.get("theme"), message.get("reduce_motion"),
+                        mute=bool(message.get("mute")))
             return {"ok": True}
         if cmd == "reload":
             menu.reload()

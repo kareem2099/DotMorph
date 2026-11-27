@@ -57,3 +57,32 @@ def files_from_clipboard() -> list[Path]:
         if files:
             return files
     return []
+
+
+def _copy_commands() -> list[list[str]]:
+    cmds: list[list[str]] = []
+    if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-copy"):
+        cmds.append(["wl-copy", "--type", "text/plain;charset=utf-8"])
+    if os.environ.get("DISPLAY"):
+        if shutil.which("xclip"):
+            cmds.append(["xclip", "-selection", "clipboard", "-in"])
+        if shutil.which("xsel"):
+            cmds.append(["xsel", "--clipboard", "--input"])
+    return cmds
+
+
+def copy_text(text: str) -> bool:
+    """Put plain text on the clipboard (wl-copy, xclip or xsel). False when none worked."""
+    for cmd in _copy_commands():
+        try:
+            # wl-copy / xclip stay in the background to serve the clipboard: don't wait on them
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL, start_new_session=True)
+            proc.communicate(text.encode(), timeout=5)
+        except subprocess.TimeoutExpired:
+            return True  # still serving the selection: that's success for xclip
+        except OSError:
+            continue
+        if proc.returncode == 0:
+            return True
+    return False

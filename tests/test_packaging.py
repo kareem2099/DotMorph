@@ -75,6 +75,7 @@ def test_deb_package(build, tmp_path, monkeypatch):
                              check=True).stdout
     assert "./usr/bin/dotmorph" in listing
     assert "./usr/lib/python3/dist-packages/dotmorph/ui/qml/main.qml" in listing
+    assert "./usr/lib/python3/dist-packages/dotmorph/locales/de.json" in listing
     assert "__pycache__" not in listing
 
     root = tmp_path / "root"
@@ -256,6 +257,11 @@ def test_every_format_has_a_freedesktop_mime_type():
 
     assert set(FORMATS) <= set(MIME)
     assert MIME["ts"] == ["video/mp2t"] and MIME["3gp"] == ["video/3gpp"]
+    from dotmorph.linux.integrate import mime_types
+
+    packaged = mime_types(every=True)
+    assert "application/pdf" in packaged
+    assert "application/x-subrip" not in packaged  # output-only: nothing opens subtitles
 
 
 def test_appimage_launcher_has_one_name(build):

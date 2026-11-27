@@ -5,6 +5,7 @@ import QtQuick.Shapes
 // Angles are in degrees from 12 o'clock, clockwise.
 Item {
     id: s
+    objectName: "ringSector"
 
     required property Theme theme
     property real cx: width / 2
@@ -37,6 +38,28 @@ Item {
     readonly property real midRad: (midDeg - 90) * Math.PI / 180
     readonly property real rMid: (innerR + outerR) / 2
 
+    // Widest a horizontal label can be here without leaving the sector: across the ring it
+    // may stick out a little (open space beyond), along it it must not reach the neighbours.
+    readonly property real labelRoom: {
+        var half = s.sweepDeg >= 180 ? 1e6 : s.rMid * Math.sin(s.sweepDeg * Math.PI / 360) - s.gapPx - 4
+        var across = (s.outerR - s.innerR) / 2 + 10
+        var c = Math.abs(Math.cos(s.midRad)), t = Math.abs(Math.sin(s.midRad))
+        return 2 * Math.min(c > 0.01 ? across / c : 1e6, t > 0.01 ? half / t : 1e6)
+    }
+    readonly property int labelBase: s.showIcon ? 13 : (s.sweepDeg < 34 ? 12 : 15)
+    // shrinks long translations ("Komprimieren", "Объединить PDF") instead of overlapping
+    readonly property int labelSize: Math.max(8, Math.min(labelBase,
+        Math.floor(labelBase * (labelRoom - 3) / Math.max(1, labelMetrics.advanceWidth))))
+    readonly property int subSize: Math.max(7, Math.min(10,
+        Math.floor(10 * (labelRoom - 3) / Math.max(1, subMetrics.advanceWidth))))
+    TextMetrics {
+        id: labelMetrics
+        text: s.label
+        font.pixelSize: s.labelBase
+        font.bold: true
+        font.letterSpacing: 0.5
+    }
+    TextMetrics { id: subMetrics; text: s.sub; font.pixelSize: 10 }
     // 0 idle, ~0.5 selected, 1 hovered; animated so colour, push and size move together.
     property real lift: busy ? 0 : (hovered ? 1 : (selected ? 0.55 : 0))
     Behavior on lift { NumberAnimation { duration: s.theme.ms(170); easing.type: Easing.OutCubic } }
@@ -133,18 +156,20 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            objectName: "sectorLabel"
             text: s.label
             color: s.mix(s.theme.text, Qt.rgba(1, 1, 1, 1), s.ink)
-            font.pixelSize: s.showIcon ? 13 : (s.sweepDeg < 34 ? 12 : 15)
+            font.pixelSize: s.labelSize
             font.bold: true
             font.letterSpacing: 0.5
         }
         Text {
             visible: s.sub !== ""
             anchors.horizontalCenter: parent.horizontalCenter
+            objectName: "sectorSub"
             text: s.sub
             color: s.mix(s.theme.textDim, Qt.rgba(1, 1, 1, 0.8), s.ink)
-            font.pixelSize: 10
+            font.pixelSize: s.subSize
         }
     }
 }

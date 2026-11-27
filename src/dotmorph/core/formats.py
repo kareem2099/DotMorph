@@ -29,7 +29,8 @@ _CATALOG = {
     "image": "png jpg webp avif gif bmp tiff ico heic heif svg psd xcf tga jxl",
     "video": "mp4 mkv webm mov avi m4v flv wmv mpeg ts 3gp",
     "audio": "mp3 wav flac ogg opus m4a aac wma",
-    "document": "pdf docx doc odt rtf txt md html rst org epub pptx ppt odp xlsx xls ods csv ps",
+    "document": "pdf docx doc odt rtf txt md html rst org epub pptx ppt odp xlsx xls ods csv ps "
+    "srt vtt",
 }
 FORMATS: dict[str, str] = {
     ext: category for category, exts in _CATALOG.items() for ext in exts.split()
@@ -54,13 +55,21 @@ TOOLS: dict[str, Tool] = {
     "strip": Tool("Strip meta", "-clean"),
     "mute": Tool("Mute", "-muted"),
     "merge-pdf": Tool("Merge PDF", "-merged", batch=True),
+    "copy-text": Tool("Copy text", "-transcript"),  # speech / OCR text on the clipboard (+ .txt)
+    "ocr": Tool("OCR", "-ocr"),  # image or scan -> searchable PDF
+    "fit-10mb": Tool("≤ 10 MB", "-10mb"),   # Discord (free)
+    "fit-16mb": Tool("≤ 16 MB", "-16mb"),   # WhatsApp
+    "fit-25mb": Tool("≤ 25 MB", "-25mb"),   # e-mail attachments (Gmail, Outlook)
 }
+
+# "Fit under X MB" tools: the size limit in MB (10^6 bytes, so it's also under X MiB).
+FIT_TOOLS = {"fit-10mb": 10, "fit-16mb": 16, "fit-25mb": 25}
 
 # Menu order: most wanted first. Anything not listed goes last, alphabetically.
 _RANK = (
     "png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav "
-    "docx odt md html txt epub xlsx ods csv pptx odp bmp tiff ico m4v "
-    "compress resize-50 rotate-90 strip mute merge-pdf"
+    "docx odt md html txt srt vtt epub xlsx ods csv pptx odp bmp tiff ico m4v "
+    "compress fit-10mb fit-16mb fit-25mb resize-50 rotate-90 strip mute merge-pdf copy-text ocr"
 ).split()
 RANK = {name: i for i, name in enumerate(_RANK)}
 

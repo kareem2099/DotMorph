@@ -4,6 +4,7 @@ _dotmorph() {
     local -a cmds
     cmds=(
         'convert:convert files from the terminal'
+        'whisper:speech models for transcription (audio/video -> text)'
         'formats:list supported conversions'
         'settings:open the settings window'
         'completions:shell completion script (bash, zsh, fish)'
@@ -25,7 +26,7 @@ _dotmorph() {
         convert)
             _arguments -s \
                 '(-h --help)'{-h,--help}'[show this help message and exit]' \
-                '--to[target format or tool]:to:(png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt epub xlsx ods csv pptx odp bmp tiff ico compress resize-50 rotate-90 strip mute merge-pdf)' \
+                '--to[target format or tool]:to:(png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt srt vtt epub xlsx ods csv pptx odp bmp tiff ico compress fit-10mb fit-16mb fit-25mb resize-50 rotate-90 strip mute merge-pdf copy-text ocr)' \
                 '--preset[named set of options]:preset:(email print share thumb web)' \
                 '(-o --out)'{-o,--out}'[output directory (default next to source)]:directory:_files -/' \
                 '--dpi[render resolution (default PDF 150, SVG 96 = original size)]:dpi:' \
@@ -35,10 +36,18 @@ _dotmorph() {
                 '--overwrite[replace existing files]' \
                 '(-j --jobs)'{-j,--jobs}'[files converted in parallel (default CPU cores, up to 8)]:jobs:' \
                 '--timeout[give up on one file after N seconds]:timeout:' \
+                '--fit[make each file at most SIZE (8M, 10MB, 500K) video, audio, images, PDF]:SIZE:' \
+                '--lang[language for transcription and OCR (en, ar, de, ar+en for OCR]:CODE:' \
                 '(-q --quiet)'{-q,--quiet}'[no progress bar]' \
                 '--notify[desktop notification when done (with an Open folder button)]' \
                 '(-n --dry-run)'{-n,--dry-run}'[show what would be converted, and how, without doing it]' \
                 '*:file:_files'
+            ;;
+        whisper)
+            _arguments -s \
+                '(-h --help)'{-h,--help}'[show this help message and exit]' \
+                '--download[download a model tiny, base (default), small, medium, large-v3-turbo]:MODEL:' \
+                '--list[models available and installed]'
             ;;
         formats)
             _arguments -s \
@@ -84,7 +93,7 @@ _dotmorph() {
         watch)
             _arguments -s \
                 '(-h --help)'{-h,--help}'[show this help message and exit]' \
-                '--to[target format or tool]:to:(png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt epub xlsx ods csv pptx odp bmp tiff ico compress resize-50 rotate-90 strip mute merge-pdf)' \
+                '--to[target format or tool]:to:(png jpg webp pdf avif gif mp4 mkv webm mov avi mp3 m4a ogg opus flac wav docx odt md html txt srt vtt epub xlsx ods csv pptx odp bmp tiff ico compress fit-10mb fit-16mb fit-25mb resize-50 rotate-90 strip mute merge-pdf copy-text ocr)' \
                 '--from[only these source formats, comma separated (default all that fit)]:EXTS:' \
                 '(-o --out)'{-o,--out}'[output directory (default same folder)]:directory:_files -/' \
                 '--quality[]:quality:' \

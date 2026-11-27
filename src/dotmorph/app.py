@@ -16,7 +16,7 @@ OPEN_TIMEOUT = 15.0
 
 CLI_COMMANDS = {
     "convert", "formats", "doctor", "daemon", "integrate", "hotkey", "watch", "completions",
-    "settings",
+    "settings", "whisper",
     "-h", "--help", "-V", "--version",
 }
 
@@ -29,6 +29,7 @@ def _gui_args(argv: list[str]) -> argparse.Namespace:
     env_motion = os.environ.get("DOTMORPH_REDUCE_MOTION")
     parser.add_argument("--reduce-motion", action="store_true",
                         default=(env_motion not in ("", "0")) if env_motion is not None else None)
+    parser.add_argument("--mute", action="store_true", help="no sounds this time")
     parser.add_argument("--clipboard", action="store_true",
                         help="use the files copied in the file manager")
     parser.add_argument("--no-daemon", action="store_true",
@@ -52,7 +53,8 @@ def run_gui(argv: list[str]) -> int:
 
         try:
             reply = ipc.exchange({"cmd": "open", "files": files, "theme": args.theme,
-                                  "reduce_motion": args.reduce_motion}, timeout=OPEN_TIMEOUT)
+                                  "reduce_motion": args.reduce_motion, "mute": args.mute},
+                                 timeout=OPEN_TIMEOUT)
         except ipc.DaemonBusy:
             # It has the files and will show the wheel when it catches up; a window of our
             # own now would mean two wheels on screen a moment later.
@@ -64,7 +66,7 @@ def run_gui(argv: list[str]) -> int:
 
     from .ui.window import run_once
 
-    return run_once(files, theme=args.theme, reduce_motion=args.reduce_motion)
+    return run_once(files, theme=args.theme, reduce_motion=args.reduce_motion, mute=args.mute)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -5,11 +5,13 @@ from __future__ import annotations
 from .ffmpeg import FFmpegBackend
 from .ghostscript import GhostscriptBackend
 from .magick import MagickBackend
+from .ocr import OcrBackend
 from .office import OfficeBackend
 from .pandoc import PandocBackend
 from .pillow import PillowBackend
 from .poppler import PopplerBackend
 from .svg import SvgBackend
+from .whisper import WhisperBackend
 
 ALL = [
     PillowBackend(),
@@ -18,6 +20,8 @@ ALL = [
     SvgBackend(),
     MagickBackend(),
     FFmpegBackend(),
+    WhisperBackend(),
+    OcrBackend(),
     OfficeBackend(),
     PandocBackend(),
 ]

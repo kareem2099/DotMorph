@@ -8,7 +8,7 @@
 Markdown, with **440+ conversions** from one animated wheel. Open it from your file manager,
 a hotkey, a screen-edge dock or the terminal.
 
-[![Version](https://img.shields.io/badge/version-2.0.4-7C5CFF?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.2.0-7C5CFF?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-2FD38B?style=flat-square)](https://github.com/kareem2099/DotMorph/blob/main/LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-2FC8F0?style=flat-square&logo=python&logoColor=white)](https://github.com/kareem2099/DotMorph/blob/main/pyproject.toml)
 [![Linux](https://img.shields.io/badge/platform-Linux%20%C2%B7%20X11%20%C2%B7%20Wayland-FFB547?style=flat-square&logo=linux&logoColor=black)](#install)
@@ -56,11 +56,15 @@ DotMorph puts every converter you already have behind **one wheel**:
 | 🖱️ **Everywhere you work** | File-manager right-click with quick actions, "Open with", a global hotkey for copied files, watch folders, and a full CLI. |
 | 🔄 **440+ conversions** | 53 formats on 8 engines: Pillow, librsvg, poppler, Ghostscript, ImageMagick, ffmpeg, LibreOffice and pandoc. |
 | 🛠️ **Tools** | Compress (never bigger than the original), resize, rotate, strip metadata, mute video, merge into one PDF. |
+| 📦 **Fit under X MB** | One click to get a photo, video, song or PDF under 10 MB (Discord), 16 MB (WhatsApp) or 25 MB (e-mail), at the best quality that fits. |
+| 🔍 **OCR** | Text out of screenshots, photos and scans: to a TXT file, straight to the clipboard, or a searchable PDF (Tesseract). |
+| 🎙️ **Transcription** | Audio and video to text or SRT / VTT subtitles, fully offline with whisper.cpp, in about 100 languages. |
+| 🔊 **Sounds** | Short, soft sounds for opening, converting, done, failed and docking, synthesized for DotMorph. Easy to turn off, and silent when the desktop's event sounds are off. |
 | 🎛️ **Options** | Quality, resolution, size and metadata, from the wheel's options panel or CLI flags and presets. |
 | ⚙️ **Settings window** | Theme, language, notifications, output folder, your own format order, the shortcut, integrations, watch folders and engine status, all in one place. |
-| 🌍 **English & العربية** | Full Arabic interface with right-to-left layout and a proper Arabic font, chosen automatically from your system language. |
+| 🌍 **9 languages** | English, العربية, Deutsch, Español, Français, Italiano, Português (Brasil), Русский and Türkçe, with real plural forms, right-to-left Arabic with a proper Arabic font, chosen automatically from your system language. |
 | 🎨 **Themes** | Dark, light and glass in the DotSuite style. Reduced motion for anyone who prefers no animation. |
-| 🧪 **Reliable** | 94 tests, safe temporary files, cancel at any time, and existing files are never overwritten. |
+| 🧪 **Reliable** | 188 tests, safe temporary files, cancel at any time, and existing files are never overwritten. |
 
 ## Supported conversions
 
@@ -78,6 +82,8 @@ With the usual Linux tools installed that is 440+ conversions:
 | **Audio** | MP3, WAV, FLAC, OGG, Opus, M4A, AAC, WMA | each other | ffmpeg |
 | **Office** | DOCX, DOC, ODT, RTF, TXT, HTML, PPTX, PPT, ODP, XLSX, XLS, ODS, CSV | PDF, DOCX, ODT, PPTX, ODP, XLSX, ODS, CSV, TXT | LibreOffice |
 | **Markup & e-books** | Markdown, HTML, reST, Org, EPUB, DOCX, ODT | HTML, Markdown, DOCX, ODT, EPUB, PDF, TXT | pandoc |
+| **OCR** | PNG, JPG, WebP, TIFF, BMP, GIF, HEIC, AVIF, …, scanned PDF | TXT, searchable PDF, clipboard | Tesseract (ocrmypdf when installed) |
+| **Speech to text** | every audio and video format above | TXT, SRT, VTT subtitles, clipboard | whisper.cpp |
 
 **Popular conversions:** PDF to PNG/JPG · HEIC to JPG · SVG to PNG · SVG to PDF (vector) ·
 PNG to WebP/AVIF · MOV to MP4 · MP4 to GIF · MKV to MP4 (no re-encode) · video to MP3 ·
@@ -94,6 +100,9 @@ compress PDF · merge images into one PDF · remove EXIF/GPS from photos.
 | `strip`     | images, videos, audio | `name-clean.ext`, metadata removed (JPEG keeps its tables: no quality loss) |
 | `mute`      | videos | `name-muted.ext` |
 | `merge-pdf` | several images and/or PDFs | one `first-merged.pdf` |
+| `fit-10mb`, `fit-16mb`, `fit-25mb` | images, PDF, videos, MP3 / M4A / OGG / Opus | `name-10mb.ext` at or under the limit, as good as it can be; files that already fit are copied untouched |
+| `ocr`       | images, scanned PDFs | `name-ocr.pdf` with a text layer you can search and copy |
+| `copy-text` | images, scanned PDFs, audio, videos | the text on the clipboard (OCR or transcription), plus a `name.txt` copy |
 
 ## Install
 
@@ -103,8 +112,8 @@ Pick one. Every package installs the same app, the `dotmorph` command, and the "
 | Method | Command | Best for |
 |--------|---------|----------|
 | **pipx** (PyPI) | `pipx install 'dotmorph[gui]'` | any distro, per user, easy updates |
-| **AppImage** | download `DotMorph-2.0.4-x86_64.AppImage` from [Releases](https://github.com/kareem2099/DotMorph/releases), `chmod +x`, run | no install at all, one file |
-| **Debian / Kali / Ubuntu** | `sudo apt install ./dotmorph_2.0.4-1_all.deb` from [Releases](https://github.com/kareem2099/DotMorph/releases) | system package with apt dependencies |
+| **AppImage** | download `DotMorph-2.2.0-x86_64.AppImage` from [Releases](https://github.com/kareem2099/DotMorph/releases), `chmod +x`, run | no install at all, one file |
+| **Debian / Kali / Ubuntu** | `sudo apt install ./dotmorph_2.2.0-1_all.deb` from [Releases](https://github.com/kareem2099/DotMorph/releases) | system package with apt dependencies |
 | **Arch / Manjaro (AUR)** | `yay -S dotmorph` (or `paru -S dotmorph`) | Arch-based systems |
 | **From source** | see below | development |
 
@@ -124,7 +133,7 @@ Notes per method:
 - **AppImage:** it bundles Python, Qt and Qt's X11 libraries, so only the conversion tools
   come from your system. If it won't start because of FUSE, install `libfuse2`
   (`libfuse2t64` on Ubuntu 24.04+) or run it with `--appimage-extract-and-run`. Run
-  `./DotMorph-2.0.4-x86_64.AppImage integrate` once to get menus and the launcher; desktop
+  `./DotMorph-2.2.0-x86_64.AppImage integrate` once to get menus and the launcher; desktop
   integration remembers the AppImage's path, so keep it in one place (e.g. `~/Applications`).
   It carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate)
   or AppImageLauncher update it from GitHub Releases, downloading only what changed.
@@ -192,6 +201,9 @@ LibreOffice 26.8.
 | Copied files for the hotkey | `wl-clipboard` on Wayland, `xclip` or `xsel` on X11 |
 | Watch folders as a service | systemd user sessions |
 | Arabic interface | a Noto Arabic font (Noto Kufi, Noto Sans or Noto Naskh Arabic) for the best look |
+| Sounds | libcanberra (on practically every desktop), or `pw-play` / `paplay` |
+| OCR | `tesseract-ocr` plus a language pack per language (`tesseract-ocr-ara`, `-deu`, …); `ocrmypdf` makes better searchable PDFs |
+| Transcription | `whisper.cpp` (`whisper-cli`) and a model from `dotmorph whisper --download` |
 
 ### Verify your download
 
@@ -202,7 +214,7 @@ and the public key (`dotmorph-signing-key.asc`):
 sha256sum -c SHA256SUMS --ignore-missing                  # checks the files you downloaded
 gpg --import dotmorph-signing-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS                    # the checksums are really from us
-gpg --verify DotMorph-2.0.4-x86_64.AppImage.asc DotMorph-2.0.4-x86_64.AppImage
+gpg --verify DotMorph-2.2.0-x86_64.AppImage.asc DotMorph-2.2.0-x86_64.AppImage
 ```
 
 Releases are signed by **FreeRave &lt;kareem209907@gmail.com&gt;**, with this key fingerprint:
@@ -216,7 +228,7 @@ that key means the file is exactly what the release workflow built. Packages fro
 PyPI carry PyPI's own attestations instead.
 
 On Arch you can also install the ready-built package from the release without the AUR:
-`sudo pacman -U dotmorph-2.0.4-1-any.pkg.tar.zst`.
+`sudo pacman -U dotmorph-2.2.0-1-any.pkg.tar.zst`.
 
 ### From source
 
@@ -308,7 +320,7 @@ dotmorph settings        # also in your app menu as "DotMorph Settings"
 
 | Page | What you can change |
 |------|---------------------|
-| **General** | Theme (live preview), reduced motion, language (System / English / العربية), when to notify, where converted files go, and default quality, resolution, size and metadata |
+| **General** | Theme (live preview), reduced motion, language (System or one of 9), when to notify, sounds (on / off, volume, hover ticks, a test button), where converted files go, and default quality, resolution, size and metadata |
 | **Wheel** | Your formats: click once to **pin** a format (it comes first), twice to **hide** it, again to reset |
 | **Shortcut** | Record a new global shortcut by pressing it. Keys that are already taken are refused, and you can remove it |
 | **Integrations** | Background daemon, file-manager menus (and which quick actions they show), edge dock, shell completion |
@@ -334,6 +346,11 @@ dotmorph convert scan1.jpg scan2.jpg notes.pdf --to merge-pdf
 dotmorph convert photos/*.jpg --to strip -j 8  # 8 files in parallel
 dotmorph convert report.docx --to pdf --notify # notification with "Open folder" when done
 dotmorph convert shots/*.png --preset web      # WebP, fits 1920 px, q80, no metadata
+dotmorph convert clip.mp4 --fit 8M             # at or under 8 MB, best quality that fits
+dotmorph convert scan.pdf --to ocr             # searchable PDF: scan-ocr.pdf
+dotmorph convert receipt.jpg --to txt --lang de  # OCR in German (tesseract-ocr-deu)
+dotmorph convert talk.mp4 --to srt             # subtitles (needs whisper.cpp, see below)
+dotmorph convert voice.ogg --to copy-text --lang ar  # transcript on the clipboard
 dotmorph convert *.mov --to mp4 --dry-run      # show what would happen, write nothing
 dotmorph formats                               # everything this machine can convert
 dotmorph formats song.flac                     # targets for one file
@@ -350,9 +367,26 @@ More options:
 | `--quality 1-100` | image quality |
 | `--resize SPEC` | `50%`, `1920x1080` (fit inside), or `1280` (width) |
 | `--timeout SECONDS` | give up on one file after this long |
+| `--fit SIZE` | size limit for the fit tools: `8M`, `500k`, `2.5MB` (alone, it means `fit-25mb` with that limit) |
+| `--lang CODE` | language for OCR and transcription: `en`, `ar`, `de`, `ar+en`… (default: OCR reads English plus your interface language, transcription detects it) |
 | `-q` | no progress bar |
 
 Exit codes: `0` everything converted, `1` something failed, `130` cancelled.
+
+The wheel itself takes `--mute` (no sounds this time); `DOTMORPH_SOUND=0` silences it for
+good, like the switch in the settings.
+
+**Transcription setup.** whisper.cpp needs a speech model, downloaded once (the only time
+DotMorph goes online, and only when you ask):
+
+```bash
+sudo apt install whisper.cpp-tools   # Fedora: whisper-cpp, Arch: whisper.cpp
+dotmorph whisper --download          # the "base" model, 142 MB; also tiny, small, medium, large-v3-turbo
+dotmorph whisper --list              # installed models and where they live
+```
+
+Models go to `~/.local/share/dotmorph/whisper/`; `DOTMORPH_WHISPER_MODEL=/path/model.bin`
+uses one of your own.
 
 **Presets** (`--preset NAME`; explicit flags still win):
 
@@ -407,8 +441,9 @@ PDF stays vector, with real, selectable text.
 <details>
 <summary><b>Does DotMorph upload my files anywhere?</b></summary>
 
-No. Every conversion runs locally with tools on your machine. DotMorph itself never goes
-online: there is no account and no telemetry.
+No. Every conversion runs locally with tools on your machine, transcription and OCR
+included. There is no account and no telemetry. The one time DotMorph goes online is when
+you run `dotmorph whisper --download` to fetch a speech model.
 </details>
 
 <details>
@@ -433,11 +468,21 @@ seconds and loses no quality. It falls back to a transcode only when needed.
 </details>
 
 <details>
-<summary><b>Does DotMorph support Arabic?</b></summary>
+<summary><b>Which languages does DotMorph speak?</b></summary>
 
-Yes. Pick **العربية** in `dotmorph settings`, or keep **System** on an Arabic desktop. The
-wheel, the settings window and notifications switch to Arabic with a right-to-left layout.
-Commands and format names stay in English.
+English, Arabic, German, Spanish, French, Italian, Brazilian Portuguese, Russian and
+Turkish. Pick one in `dotmorph settings`, or keep **System** to follow your desktop. The
+wheel, the settings window and notifications switch over, Arabic with a right-to-left
+layout. Commands and format names stay in English. Translations live in
+`src/dotmorph/locales/`, one JSON file per language: adding one is a pull request away.
+</details>
+
+<details>
+<summary><b>How do I get a video under Discord's or WhatsApp's size limit?</b></summary>
+
+Right-click it → DotMorph → Tools → **≤ 10 MB** (Discord) or **≤ 16 MB** (WhatsApp), or run
+`dotmorph convert clip.mp4 --fit 10M`. DotMorph works out the bitrate from the length, does a
+two-pass encode and checks the result, so the file lands just under the limit.
 </details>
 
 <details>
@@ -483,17 +528,19 @@ src/dotmorph/
     presets.py       --preset web / email / thumb / print / share
     system.py        distro detection for install hints
     backends/        pillow, svg (librsvg), poppler, ghostscript, magick, ffmpeg,
-                     office, pandoc
+                     whisper (transcription), ocr (tesseract), office, pandoc
   ui/              the wheel
     window.py        Qt app + QML engine (one-shot and daemon)
     settings_window.py   `dotmorph settings`: the settings window and its backend
-    i18n_qt.py       translations, right-to-left and Arabic font for QML
+    i18n_qt.py       translations, plurals, right-to-left and Arabic font for QML
+    sound.py         UI sounds: libcanberra, pw-play / paplay fallback, off switches
     dock.py          edge dock: snap, tab, half wheel, slide, undock
     bridge.py        Python <-> QML, jobs on a thread pool
     qml/             main.qml, Wheel.qml, RingSector.qml, Hub.qml, Theme.qml,
                      OptionsPanel.qml, EdgeTab.qml, CategoryIcon.qml,
                      SettingsWindow.qml (+ SetCard, SetRow, Seg, Toggle, Btn, SetSlider)
     icons/           dotmorph.svg
+    sounds/          the UI sounds (Ogg, made by packaging/sounds.py)
   linux/           desktop integration (no Qt at import time)
     daemon.py, ipc.py      instant-open daemon + Unix socket protocol
     integrate.py           file-manager menus, .desktop, icon
@@ -501,12 +548,14 @@ src/dotmorph/
     watch.py               inotify watcher + systemd user units
     notify.py, clipboard.py, paths.py
   settings.py      everything remembered between runs (settings.json)
-  i18n.py          English / Arabic text
+  i18n.py          translation lookup and CLDR plural rules
+  locales/         one JSON catalog per language (ar, de, es, fr, it, pt-BR, ru, tr)
   completions.py   bash / zsh / fish completion scripts
   cli.py           subcommands
   app.py           entry point: CLI, or the wheel (through the daemon if running)
 packaging/
   build.py         assets, check, notes, deb, appimage, aur (see docs/RELEASING.md)
+  sounds.py        synthesizes the UI sounds
   linux/           generated: .desktop, AppStream metainfo, man page, icons, completions
 tests/
 docs/              ROADMAP.md, PLAN.md, RELEASING.md, screenshots/

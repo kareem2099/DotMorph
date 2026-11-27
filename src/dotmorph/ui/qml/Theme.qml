@@ -16,6 +16,22 @@ QtObject {
         if (a2 !== undefined) out = out.replace("%2", a2)
         return out
     }
+    // UI sound (see ui/sound.py), silent where there's no `sound` object (settings window)
+    function sfx(name) {
+        if (typeof sound !== "undefined" && sound) sound.play(name)
+    }
+    // text with a count in it: tn("%1 files", n) picks the plural form for n
+    function tn(text, n, a2) {
+        var forms = strings[text]
+        var out = text
+        if (forms && typeof forms === "object") {
+            var form = (typeof i18n !== "undefined" && i18n) ? i18n.plural(n) : (n === 1 ? "one" : "other")
+            out = forms[form] || forms["other"] || text
+        }
+        out = out.replace("%1", n)
+        if (a2 !== undefined) out = out.replace("%2", a2)
+        return out
+    }
 
     // Multiply every duration by this; 0 means "jump to the end".
     readonly property real motion: reduceMotion ? 0 : 1

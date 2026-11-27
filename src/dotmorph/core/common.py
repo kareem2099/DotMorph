@@ -40,6 +40,8 @@ class Options:
     resize: str | None = None  # "50%", "1920x1080" (fit inside) or "1280" (width)
     strip: bool = False  # drop EXIF / tags while converting
     timeout: float | None = None  # per external tool call, seconds
+    language: str | None = None  # speech / OCR language ("en", "ar", ...); None = detect
+    fit_bytes: int | None = None  # "fit" tools: size limit, overriding the tool's own
 
     @property
     def page_dpi(self) -> int:
@@ -109,14 +111,16 @@ def run_tool(
     *,
     timeout: float | None = None,
     on_line: Callable[[str], None] | None = None,
+    on_err_line: Callable[[str], None] | None = None,
     on_tick: Callable[[], None] | None = None,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
 ) -> tuple[int, str]:
     """Run a command, honouring cancel and timeout. Returns (returncode, stderr).
 
-    `on_line` receives stdout lines as they arrive (ffmpeg -progress), `on_tick` is called
-    about ten times a second (used to watch output files appear).
+    `on_line` receives stdout lines as they arrive (ffmpeg -progress), `on_err_line` stderr
+    lines (whisper-cli prints its progress there), `on_tick` is called about ten times a
+    second (used to watch output files appear).
     The tool runs in its own process group so helpers it spawns die with it.
     """
     ctx = ctx or Context()
@@ -138,6 +142,8 @@ def run_tool(
         assert proc.stderr is not None
         for chunk in proc.stderr:
             err_chunks.append(chunk)
+            if on_err_line:
+                on_err_line(chunk.rstrip("\n"))
             if len(err_chunks) > 400:  # keep only the tail
                 del err_chunks[:200]
 
@@ -217,6 +223,22 @@ def finalize(tmp: Path, dest: Path, overwrite: bool) -> Path:
         final = unique(dest, overwrite)
         shutil.move(str(tmp), final)
     return final
+
+
+MB = 1_000_000
+
+
+def fit_limit(action: str, opts: Options) -> int | None:
+    """Byte limit for a "fit under X MB" action, None for any other action."""
+    from .formats import FIT_TOOLS
+
+    if action not in FIT_TOOLS:
+        return None
+    return opts.fit_bytes if opts.fit_bytes is not None else FIT_TOOLS[action] * MB
+
+
+def too_big(limit: int, what: str) -> ConversionError:
+    return ConversionError(f"can't get this {what} under {limit / MB:g} MB without ruining it")
 
 
 def keep_smaller(tmp: Path, src: Path) -> None:

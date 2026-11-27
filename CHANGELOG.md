@@ -9,6 +9,53 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [2.2.0] - 2026-11-27
+
+2.1 and 2.2 of the [2.x plan](https://github.com/kareem2099/DotMorph/blob/main/docs/PLAN-2.x.md) in one release: DotMorph learns to listen,
+read, fit and speak nine languages.
+
+### Added
+
+- **Transcription** ([#4](https://github.com/kareem2099/DotMorph/issues/4)). Audio and video
+  to **TXT**, **SRT** or **VTT** subtitles, or straight to the clipboard (**Copy text**),
+  fully offline with [whisper.cpp](https://github.com/ggml-org/whisper.cpp). The language is
+  detected, or set with `--lang ar`. `dotmorph whisper --download` fetches a speech model
+  once (base, 142 MB; also tiny, small, medium and large-v3-turbo) and `dotmorph whisper
+  --list` shows what is installed. Progress comes from whisper itself.
+- **OCR** with Tesseract. Images to **TXT**, the clipboard or a searchable PDF (**OCR**:
+  `name-ocr.pdf`); scanned PDFs to a searchable PDF or the clipboard. ocrmypdf is used when
+  installed, otherwise pages are rendered with pdftoppm and merged with Ghostscript. It reads
+  English plus your interface language when that pack is installed, or what `--lang` says;
+  a missing pack names the package to install.
+- **Fit under X MB**: three new tools, **≤ 10 MB** (Discord), **≤ 16 MB** (WhatsApp) and
+  **≤ 25 MB** (e-mail), for photos, PDFs, videos and MP3 / M4A / OGG / Opus, plus
+  `--fit SIZE` for any limit (`--fit 8M`). Images search for the best quality that fits,
+  then scale down; PDFs step down a Ghostscript ladder; videos get a two-pass encode at the
+  bitrate the length allows. Files that already fit are copied untouched, and a target that
+  can't be met says so instead of writing mush.
+- **Sounds.** Short, soft sounds for the wheel opening, picking a format, done, failed,
+  cancel and docking, synthesized for DotMorph by `packaging/sounds.py` (48 KB in all).
+  Played through libcanberra as event sounds (the system's alert volume applies), or
+  `pw-play` / `paplay`. Settings → General has on / off, volume, hover ticks (off by
+  default) and a test button; `--mute` silences one run and `DOTMORPH_SOUND=0` all of them.
+  GNOME's "event sounds" switch is respected.
+- **Seven new languages:** German, Spanish, French, Italian, Brazilian Portuguese, Russian
+  and Turkish, picked from your system language or in Settings (a dropdown with each
+  language in its own name). App menus and software stores show DotMorph's name and
+  description in those languages too.
+- **Real plurals.** Counted text follows each language's CLDR rules: "1 file" / "2 files",
+  Russian one / few / many, Arabic all six forms (ملف واحد، ملفان، 3 ملفات، 11 ملفًا).
+- Subtitle files (SRT, VTT) are recognized formats.
+
+### Changed
+
+- Translations moved from `i18n.py` into one JSON catalog per language in
+  `src/dotmorph/locales/`. CONTRIBUTING explains how to add a language.
+- Wheel labels that would overlap their neighbours shrink to fit (long words in German or
+  Russian), and a test checks every label in every language.
+- The .deb recommends `libcanberra0` and `tesseract-ocr` and suggests `whisper.cpp-tools` and
+  `ocrmypdf`; the Arch package lists them as optional dependencies.
+
 ## [2.0.4] - 2026-11-18
 
 ### Fixed
@@ -465,6 +512,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[2.2.0]: https://github.com/kareem2099/DotMorph/compare/v2.0.4...v2.2.0
 [2.0.4]: https://github.com/kareem2099/DotMorph/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/kareem2099/DotMorph/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/kareem2099/DotMorph/compare/v2.0.1...v2.0.2

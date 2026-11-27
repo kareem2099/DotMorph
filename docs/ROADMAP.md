@@ -56,12 +56,15 @@ Developed on Kali, GNOME on Wayland.
 - [~] Launch series on dev.to (part 1 published), Medium, social posts
 - [ ] Share on r/linux, Show HN
 
-## Next: 2.1 – 2.3 (details in [PLAN-2.x.md](PLAN-2.x.md))
-- [ ] **2.1** Sound effects (libcanberra, no new dependency)
-- [ ] **2.1** Languages: Russian, German, Italian, French, Spanish, Portuguese (Brazil), Turkish, with plural rules
-- [ ] **2.2** "Fit under X MB" size targets (Discord, WhatsApp, email)
-- [ ] **2.2** OCR: image → text, scanned PDF → searchable PDF
-- [ ] **2.2** Transcription: audio / video → text, SRT, VTT, copy to clipboard (whisper.cpp, offline) ([#4](https://github.com/kareem2099/DotMorph/issues/4))
+## 2.2: voice and smarter conversions (details in [PLAN-2.x.md](PLAN-2.x.md))
+2.1 and 2.2 shipped together as 2.2.0.
+- [x] Sound effects (libcanberra, no new dependency)
+- [x] Languages: Russian, German, Italian, French, Spanish, Portuguese (Brazil), Turkish, with plural rules
+- [x] "Fit under X MB" size targets (Discord, WhatsApp, email)
+- [x] OCR: image → text, scanned PDF → searchable PDF
+- [x] Transcription: audio / video → text, SRT, VTT, copy to clipboard (whisper.cpp, offline) ([#4](https://github.com/kareem2099/DotMorph/issues/4))
+
+## Next: 2.3
 - [ ] **2.3** Custom actions (TOML plugins, user-defined sectors)
 - [ ] **2.3** Native Wayland on KDE / wlroots (layer-shell, portal global shortcuts)
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import re
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -10,7 +12,7 @@ from pathlib import Path
 from . import __version__
 from .core import registry
 from .core.converter import BatchResult, Options, convert_many, default_jobs, plan
-from .core.formats import CATEGORIES, FORMATS, TOOLS, normalize_ext
+from .core.formats import CATEGORIES, FIT_TOOLS, FORMATS, TOOLS, normalize_ext
 from .core.presets import PRESETS
 from .core.system import distro_name, package_manager
 
@@ -47,11 +49,22 @@ def _parser() -> argparse.ArgumentParser:
     conv.add_argument("-j", "--jobs", type=int, default=0,
                       help="files converted in parallel (default: CPU cores, up to 8)")
     conv.add_argument("--timeout", type=float, help="give up on one file after N seconds")
+    conv.add_argument("--fit", metavar="SIZE",
+                      help="make each file at most SIZE (8M, 10MB, 500K): video, audio, images, "
+                           "PDF; --to is then optional")
+    conv.add_argument("--lang", metavar="CODE",
+                      help="language for transcription and OCR (en, ar, de, ar+en for OCR; "
+                           "default: detect / English plus the interface language)")
     conv.add_argument("-q", "--quiet", action="store_true", help="no progress bar")
     conv.add_argument("--notify", action="store_true",
                       help="desktop notification when done (with an Open folder button)")
     conv.add_argument("-n", "--dry-run", action="store_true",
                       help="show what would be converted, and how, without doing it")
+
+    wh = sub.add_parser("whisper", help="speech models for transcription (audio/video -> text)")
+    wh.add_argument("--download", metavar="MODEL", nargs="?", const="base",
+                    help="download a model: tiny, base (default), small, medium, large-v3-turbo")
+    wh.add_argument("--list", action="store_true", help="models available and installed")
 
     fmts = sub.add_parser("formats", help="list supported conversions")
     fmts.add_argument("files", nargs="*", type=Path, help="show targets for these files only")
@@ -141,11 +154,33 @@ class _Progress:
             sys.stderr.flush()
 
 
+def parse_size(spec: str) -> int:
+    """'8M', '10MB', '500k', '2.5m', '1200000' -> bytes (decimal units, like the presets)."""
+    m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*([kmg]?)b?\s*", spec.lower())
+    if not m:
+        raise ValueError(f"not a size: {spec!r} (try 8M or 500K)")
+    size = int(float(m.group(1)) * {"": 1, "k": 10**3, "m": 10**6, "g": 10**9}[m.group(2)])
+    if size <= 0:
+        raise ValueError(f"the size must be more than 0: {spec!r}")
+    return size
+
+
 def _convert(args: argparse.Namespace) -> int:
     preset = PRESETS[args.preset] if args.preset else None
-    to = args.to or (preset.to if preset else None)
+    fit_bytes = None
+    if args.fit:
+        try:
+            fit_bytes = parse_size(args.fit)
+        except ValueError as exc:
+            print(f"dotmorph convert: {exc}", file=sys.stderr)
+            return 2
+    to = args.to or (preset.to if preset else None) or ("fit-25mb" if fit_bytes else None)
     if not to:
         print("dotmorph convert: --to is required (or a --preset that sets it)", file=sys.stderr)
+        return 2
+    if fit_bytes and to not in FIT_TOOLS:
+        print(f"dotmorph convert: --fit works with the size tools, not --to {to} "
+              "(drop --to, or use --to fit-10mb / fit-16mb / fit-25mb)", file=sys.stderr)
         return 2
     dpi = args.dpi or (preset.dpi if preset else None)
     quality = args.quality or (preset.quality if preset else None) or 90
@@ -157,6 +192,8 @@ def _convert(args: argparse.Namespace) -> int:
         resize=args.resize or (preset.resize if preset else None),
         strip=args.strip or bool(preset and preset.strip),
         timeout=args.timeout,
+        language=args.lang,
+        fit_bytes=fit_bytes,
     )
     target = normalize_ext(to)
     if args.dry_run:
@@ -471,6 +508,47 @@ def _completions(args: argparse.Namespace) -> int:
     return 0
 
 
+def _whisper(args: argparse.Namespace) -> int:
+    from .core import registry
+    from .core.backends import whisper
+
+    installed = whisper.installed_models()
+    if args.download:
+        name = args.download
+        if name not in whisper.MODELS:
+            print(f"unknown model {name!r}; choose from {', '.join(whisper.MODELS)}",
+                  file=sys.stderr)
+            return 2
+        print(f"downloading the {name} model (~{whisper.MODELS[name]} MB) "
+              f"to {whisper.models_dir()}")
+
+        def show(done: int, total: int) -> None:
+            if total and sys.stderr.isatty():
+                sys.stderr.write(f"\r  {done * 100 // total:3d}%  {done >> 20} / {total >> 20} MB")
+                sys.stderr.flush()
+
+        try:
+            path = whisper.download(name, show)
+        except (OSError, ValueError) as exc:
+            print(f"\ndownload failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"\nsaved {path}")
+        registry.refresh()
+        if not shutil.which("whisper-cli"):
+            print(f"now install whisper-cli: {whisper.WHISPER.install}")
+        return 0
+    print("Whisper models (multilingual):")
+    for name, size in whisper.MODELS.items():
+        mark = f"installed: {installed[name]}" if name in installed else ""
+        default = " (default)" if name == whisper.DEFAULT_MODEL else ""
+        print(f"  {name:<15} {size:>5} MB{default:<10} {mark}")
+    cli = shutil.which("whisper-cli") or f"missing -> {whisper.WHISPER.install}"
+    print(f"\nwhisper-cli: {cli}")
+    if not installed:
+        print("no model yet -> dotmorph whisper --download")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     args = _parser().parse_args(argv)
     if args.cmd == "completions":
@@ -491,5 +569,7 @@ def main(argv: list[str]) -> int:
         return _hotkey(args)
     if args.cmd == "watch":
         return _watch(args)
+    if args.cmd == "whisper":
+        return _whisper(args)
     return _convert(args)
 

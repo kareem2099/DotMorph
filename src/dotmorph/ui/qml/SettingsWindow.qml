@@ -239,13 +239,22 @@ Window {
                         }
                         SetRow {
                             label: theme.t("Language")
-                            Seg {
+                            QC.ComboBox {
+                                id: languageBox
                                 objectName: "languageChoice"
-                                options: [{ value: "auto", text: theme.t("System") },
-                                          { value: "en", text: "English" },
-                                          { value: "ar", text: "العربية" }]
-                                current: backend.language
-                                onChosen: (v) => backend.set("language", v)
+                                width: 190
+                                // each language in its own name; "System" follows $LANG
+                                model: [{ value: "auto", text: theme.t("System") }].concat(i18n.languages)
+                                textRole: "text"
+                                valueRole: "value"
+                                currentIndex: Math.max(0, indexOfValue(backend.language))
+                                onActivated: backend.set("language", currentValue)
+                                palette.button: theme.window
+                                palette.buttonText: theme.text
+                                palette.window: theme.card
+                                palette.text: theme.text
+                                palette.base: theme.window
+                                palette.highlight: theme.accent
                             }
                         }
                     }
@@ -300,6 +309,50 @@ Window {
                                   { value: "never", text: theme.t("Never") }]
                         current: backend.notify
                         onChosen: (v) => backend.set("notify", v)
+                    }
+                }
+            }
+
+            SetCard {
+                title: theme.t("Sounds")
+                SetRow {
+                    label: theme.t("Sounds")
+                    hint: theme.t("Soft sounds when the wheel opens, converts and docks")
+                    Toggle {
+                        objectName: "soundToggle"
+                        checked: backend.sound
+                        onToggled: (on) => backend.set("sound", on)
+                    }
+                }
+                SetRow {
+                    label: theme.t("Volume")
+                    enabled: backend.sound
+                    opacity: enabled ? 1 : 0.45
+                    Row {
+                        spacing: 12
+                        SetSlider {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 200
+                            from: 10
+                            to: 100
+                            step: 10
+                            value: backend.soundVolume
+                            onMoved: (v) => backend.set("soundVolume", v)
+                        }
+                        Btn {
+                            text: theme.t("Play test")
+                            onClicked: backend.testSound()
+                        }
+                    }
+                }
+                SetRow {
+                    label: theme.t("Hover ticks")
+                    hint: theme.t("A tiny tick for every sector under the pointer")
+                    enabled: backend.sound
+                    opacity: enabled ? 1 : 0.45
+                    Toggle {
+                        checked: backend.soundTicks
+                        onToggled: (on) => backend.set("soundTicks", on)
                     }
                 }
             }

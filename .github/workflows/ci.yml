@@ -39,7 +39,7 @@ jobs:
             | sudo tee /etc/apt/apt.conf.d/99ci-network > /dev/null
           sudo apt-get update
           mkdir -p ~/apt-cache/partial
-          sudo apt-get install -y --no-install-recommends -o Dir::Cache::Archives="$HOME/apt-cache" poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 \
+          sudo apt-get install -y --no-install-recommends -o Dir::Cache::Archives="$HOME/apt-cache" poppler-utils ghostscript imagemagick ffmpeg pandoc librsvg2-2 tesseract-ocr \
             desktop-file-utils appstream libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
           sudo chown -R "$(id -u):$(id -g)" ~/apt-cache   # so actions/cache can save it
           rm -rf ~/apt-cache/partial ~/apt-cache/lock

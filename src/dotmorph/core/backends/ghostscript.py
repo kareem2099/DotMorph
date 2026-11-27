@@ -16,19 +16,51 @@ from ..common import (
     Job,
     Options,
     finalize,
+    fit_limit,
     keep_smaller,
     last_error_line,
     out_dir,
     run_tool,
+    too_big,
     workdir,
 )
-from ..formats import IMAGE_FORMATS, TOOLS, source_format
+from ..formats import FIT_TOOLS, IMAGE_FORMATS, TOOLS, source_format
 from ..registry import Backend, Requirement
 from .poppler import collect_pages, page_count
 
 GS = Requirement("gs", {"apt": "ghostscript", "dnf": "ghostscript", "pacman": "ghostscript",
                         "zypper": "ghostscript"}, "compress / merge PDF")
 BASE = ["-dNOPAUSE", "-dBATCH", "-dSAFER"]
+
+# "Fit under X MB" for PDFs, gentlest first. The presets alone keep JPEG quality high (and
+# /screen can even grow a file), so after them images are re-encoded at a set resolution and
+# JPEG QFactor: (dpi, qfactor); None = just the preset.
+FIT_STEPS: tuple[tuple[str, int | None, float | None], ...] = (
+    ("/printer", None, None),
+    ("/ebook", None, None),
+    ("/ebook", 150, 0.76),
+    ("/screen", 110, 0.76),
+    ("/screen", 72, 0.76),
+    ("/screen", 72, 1.3),
+    ("/screen", 50, 1.3),
+    ("/screen", 50, 2.4),
+)
+
+
+def _fit_args(preset: str, dpi: int | None, qfactor: float | None) -> tuple[list[str], list[str]]:
+    """(options, PostScript prologue) for one FIT_STEPS entry."""
+    args = [f"-dPDFSETTINGS={preset}"]
+    if dpi is None:
+        return args, []
+    for kind in ("Color", "Gray"):
+        args += [f"-dDownsample{kind}Images=true", f"-d{kind}ImageDownsampleType=/Bicubic",
+                 f"-d{kind}ImageResolution={dpi}", f"-dAutoFilter{kind}Images=false",
+                 f"-d{kind}ImageFilter=/DCTEncode"]
+    args.append("-dPassThroughJPEGImages=false")
+    dict_ = f"<< /QFactor {qfactor} /Blend 1 /HSamples [2 1 1 2] /VSamples [2 1 1 2] >>"
+    prologue = ["-c", f"<< /ColorImageDict {dict_} /GrayImageDict {dict_} >> setdistillerparams",
+                "-f"]
+    return args, prologue
 
 
 class GhostscriptBackend(Backend):
@@ -37,7 +69,7 @@ class GhostscriptBackend(Backend):
     requirements = (GS,)
 
     def potential_pairs(self) -> dict[str, set[str]]:
-        return {"pdf": {"compress", "merge-pdf", "png", "jpg"}, "ps": {"pdf", "png"}}
+        return {"pdf": {"compress", "merge-pdf", "png", "jpg", *FIT_TOOLS}, "ps": {"pdf", "png"}}
 
     def _exe(self) -> str:
         exe = shutil.which("gs")
@@ -74,6 +106,9 @@ class GhostscriptBackend(Backend):
             tool = TOOLS.get(action)
             name = f"{src.stem}{tool.suffix if tool else ''}.pdf"
             tmp = tmpdir / name
+            limit = fit_limit(action, opts)
+            if limit:
+                return [finalize(self._fit(src, tmp, limit, job), out / name, opts.overwrite)]
             cmd = [self._exe(), *BASE, "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.5"]
             if action == "compress":
                 cmd += ["-dPDFSETTINGS=/ebook", "-dDetectDuplicateImages=true"]
@@ -86,6 +121,27 @@ class GhostscriptBackend(Backend):
                 keep_smaller(tmp, src)
             ctx.progress(1)
             return [finalize(tmp, out / name, opts.overwrite)]
+
+    def _fit(self, src: Path, tmp: Path, limit: int, job: Job) -> Path:
+        ctx = job.ctx
+        if src.stat().st_size <= limit:
+            shutil.copy2(src, tmp)  # already fits
+            ctx.progress(1)
+            return tmp
+        for i, step in enumerate(FIT_STEPS):
+            ctx.check()
+            ctx.progress(i / len(FIT_STEPS))
+            args, prologue = _fit_args(*step)
+            cmd = [self._exe(), *BASE, "-dQUIET", "-sDEVICE=pdfwrite",
+                   "-dCompatibilityLevel=1.5", "-dDetectDuplicateImages=true", *args,
+                   f"-sOutputFile={tmp}", *prologue, str(src)]
+            code, err = run_tool(cmd, ctx, timeout=job.opts.timeout)
+            if code != 0 or not tmp.exists():
+                raise ConversionError(f"ghostscript failed: {last_error_line(err)}")
+            if tmp.stat().st_size <= limit:
+                ctx.progress(1)
+                return tmp
+        raise too_big(limit, "PDF")
 
     def run_batch(
         self, srcs: Sequence[Path], action: str, opts: Options, ctx: Context

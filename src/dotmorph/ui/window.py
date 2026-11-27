@@ -28,6 +28,7 @@ class Menu:
         theme: str | None = None,
         reduce_motion: bool | None = None,
         persistent: bool = False,
+        mute: bool = False,
     ) -> None:
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QGuiApplication, QIcon
@@ -37,6 +38,7 @@ class Menu:
         from .bridge import Bridge
         from .dock import Dock
         from .i18n_qt import I18n
+        from .sound import Player, qt_sound
 
         self.app = QGuiApplication.instance() or QGuiApplication(sys.argv[:1])
         self.app.setApplicationName("DotMorph")
@@ -51,7 +53,11 @@ class Menu:
         self.dock = Dock(self.bridge)
         self.i18n = I18n(self.bridge.settings.language)
         self.i18n.changed.connect(self.bridge.relabel)
+        self.player = Player(lambda: self.bridge.settings)
+        self.player.muted = mute
+        self.sound = qt_sound(self.player)
         self.engine = QQmlApplicationEngine()
+        self.engine.rootContext().setContextProperty("sound", self.sound)
         self.engine.rootContext().setContextProperty("bridge", self.bridge)
         self.engine.rootContext().setContextProperty("dock", self.dock)
         self.engine.rootContext().setContextProperty("i18n", self.i18n)
@@ -100,8 +106,9 @@ class Menu:
         win.setY(y)
 
     def summon(self, files: list[str], theme: str | None = None,
-               reduce_motion: bool | None = None) -> None:
+               reduce_motion: bool | None = None, *, mute: bool = False) -> None:
         """Daemon: load new files and pop the (hidden) menu up again."""
+        self.player.muted = mute  # --mute holds for this showing only
         self.i18n.setLanguage(_saved_language())  # the settings window may have changed it
         if self.dock.docked:
             self.dock.peek()  # open the half wheel out of the edge
@@ -139,7 +146,8 @@ def _saved_language() -> str:
     return load().language
 
 
-def run_once(files: list[str], *, theme: str | None, reduce_motion: bool | None) -> int:
+def run_once(files: list[str], *, theme: str | None, reduce_motion: bool | None,
+             mute: bool = False) -> int:
     prepare_platform()
     try:
         import PySide6  # noqa: F401
@@ -147,7 +155,7 @@ def run_once(files: list[str], *, theme: str | None, reduce_motion: bool | None)
         print("The GUI needs PySide6:  pip install 'dotmorph[gui]'", file=sys.stderr)
         return 2
     try:
-        menu = Menu(files, theme=theme, reduce_motion=reduce_motion)
+        menu = Menu(files, theme=theme, reduce_motion=reduce_motion, mute=mute)
     except RuntimeError as exc:
         print(exc, file=sys.stderr)
         return 1

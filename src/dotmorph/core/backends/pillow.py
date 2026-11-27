@@ -6,7 +6,9 @@ unless asked to strip it, EXIF metadata.
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,12 +20,14 @@ from ..common import (
     Job,
     Options,
     finalize,
+    fit_limit,
     keep_smaller,
     out_dir,
     resized_size,
+    too_big,
     workdir,
 )
-from ..formats import TOOLS, normalize_ext
+from ..formats import FIT_TOOLS, TOOLS, normalize_ext
 from ..registry import Backend, Requirement
 
 PIL_NAMES = {
@@ -152,6 +156,43 @@ def save_image(
         raise ConversionError(f"cannot write {target}")
 
 
+def fit_image(
+    im: Image.Image, dest: Path, target: str, opts: Options, limit: int, ctx: Context,
+    *, exif: bytes | None = None,
+) -> None:
+    """Save `im` as `target` no bigger than `limit` bytes: the best quality that fits (binary
+    search), and only when even low quality doesn't fit, smaller dimensions (80% per step)."""
+    lossy = target in ("jpg", "webp", "avif")
+    scale = 1.0
+    for step in range(12):
+        ctx.check()
+        ctx.progress(min(0.9, step / 8))
+        frame = im if scale == 1.0 else im.resize(
+            (max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.LANCZOS)
+        if lossy:
+            lo, hi, best = 35, 95, None
+            while lo <= hi:
+                q = (lo + hi) // 2
+                save_image(frame, dest, target, replace(opts, quality=q), exif=exif)
+                if dest.stat().st_size <= limit:
+                    best, lo = q, q + 1
+                else:
+                    hi = q - 1
+            if best is not None:
+                save_image(frame, dest, target, replace(opts, quality=best), exif=exif)
+                return
+        else:
+            save_image(frame, dest, target, opts, exif=exif)
+            if dest.stat().st_size <= limit:
+                return
+            if target == "png":  # 256-colour palette before giving up pixels
+                save_image(frame, dest, target, opts, exif=exif, compress=True)
+                if dest.stat().st_size <= limit:
+                    return
+        scale *= 0.8
+    raise too_big(limit, "image")
+
+
 def strip_info(im: Image.Image) -> Image.Image:
     im.info = {k: v for k, v in im.info.items() if k in KEEP_ON_STRIP}
     return im
@@ -186,7 +227,7 @@ class PillowBackend(Backend):
             if src in write:
                 actions |= {"resize-50", "rotate-90", "strip"}
             if src in COMPRESSIBLE:
-                actions.add("compress")
+                actions |= {"compress", *FIT_TOOLS}
             pairs[src] = actions
         return pairs
 
@@ -199,13 +240,20 @@ class PillowBackend(Backend):
         out = out_dir(src, opts)
         transform = _transform(action, opts)
         strip = opts.strip or action == "strip"
+        limit = fit_limit(action, opts)
 
         _heif_ready()
         with workdir(out) as tmpdir:
             tmp = tmpdir / name
+            if limit and src.stat().st_size <= limit and not opts.strip and not opts.resize:
+                shutil.copy2(src, tmp)  # already fits: hand back the original, untouched
+                ctx.progress(1)
+                return [finalize(tmp, out / name, opts.overwrite)]
             try:
                 with Image.open(src) as im:
                     frames = getattr(im, "n_frames", 1)
+                    if limit and frames > 1:
+                        raise ConversionError("animated images can't be fitted to a size yet")
                     if frames > 1 and target in ANIMATED:
                         _save_animated(im, tmp, target, opts, transform, strip, ctx)
                     elif action == "strip" and target == "jpg" and _orientation(im) in (0, 1):
@@ -217,10 +265,14 @@ class PillowBackend(Backend):
                         if strip:
                             strip_info(upright)
                         exif = None if strip else upright.info.get("exif")
-                        save_image(
-                            transform(upright), tmp, target, opts,
-                            exif=exif, compress=action == "compress",
-                        )
+                        if limit:
+                            fit_image(transform(upright), tmp, target, opts, limit, ctx,
+                                      exif=exif)
+                        else:
+                            save_image(
+                                transform(upright), tmp, target, opts,
+                                exif=exif, compress=action == "compress",
+                            )
             except Image.UnidentifiedImageError as exc:
                 raise ConversionError("not a readable image (corrupt or wrong extension)") from exc
             except _ERRORS as exc:

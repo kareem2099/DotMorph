@@ -11,7 +11,7 @@ from PySide6.QtCore import Property, QObject, QRunnable, QThreadPool, QUrl, Sign
 from .. import settings
 from ..core.converter import Options, convert_many, default_jobs
 from ..core.formats import category_of, common_targets, label_of, source_format
-from ..i18n import tr
+from ..i18n import tr, trn
 from ..settings import THEMES
 
 RENDERED = {"pdf", "svg", "ps", "psd", "xcf"}  # sources rasterised at a chosen dpi
@@ -313,7 +313,7 @@ class Bridge(QObject):
             self._label, status = tr("Unsupported"), tr("No common format for these files")
         else:
             n = len(self._files)
-            self._label = self._files[0].name if n == 1 else tr("%1 files", n)
+            self._label = self._files[0].name if n == 1 else trn("%1 files", n)
             status = ""
         self.sectorsChanged.emit()
         self._set_status(status)
@@ -338,15 +338,15 @@ class Bridge(QObject):
     def _on_job_finished(self, outputs: list[str], errors: list[str]) -> None:
         self._set_busy(False)
         if errors and errors[-1] == "cancelled":
-            kept = tr("Cancelled · %1 file(s) kept", len(outputs))
+            kept = trn("Cancelled · %1 files kept", len(outputs))
             self._set_status(kept if outputs else tr("Cancelled"))
             self.cancelled.emit()
             return
         if errors:
             first = errors[0] if len(errors[0]) <= 80 else errors[0][:77] + "..."
-            self._set_status(tr("%1 failed: %2", len(errors), first))
+            self._set_status(trn("%1 failed: %2", len(errors), first))
         else:
-            self._set_status(tr("Done · %1 file(s)", len(outputs)))
+            self._set_status(trn("Done · %1 files", len(outputs)))
         # Long jobs: the user has probably looked away, and the menu closes by itself.
         policy = self._settings.notify
         long_job = self._hidden or time.monotonic() - self._started > NOTIFY_AFTER

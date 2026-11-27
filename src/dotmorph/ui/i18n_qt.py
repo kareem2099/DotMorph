@@ -43,7 +43,17 @@ class I18n(QObject):
 
     @Property("QVariantMap", notify=changed)
     def strings(self) -> dict[str, str]:
-        return dict(i18n.CATALOGS.get(self._lang, {}))
+        # English too has entries: the singular forms of counted text ("%1 file")
+        return {**i18n.catalog("en"), **i18n.catalog(self._lang)}
+
+    @Slot(int, result=str)
+    def plural(self, n: int) -> str:
+        """The CLDR plural form ("one", "few", ...) of `n` in the current language."""
+        return i18n.plural_category(self._lang, n)
+
+    @Property("QVariantList", constant=True)
+    def languages(self) -> list[dict[str, str]]:
+        return [{"value": code, "text": name} for code, name in i18n.NATIVE_NAMES.items()]
 
     @Property(bool, notify=changed)
     def rtl(self) -> bool:

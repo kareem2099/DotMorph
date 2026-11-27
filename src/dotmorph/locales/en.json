@@ -1,0 +1,38 @@
+{
+ "%1 options": {
+  "one": "%1 option",
+  "other": "%1 options"
+ },
+ "%1 files": {
+  "one": "%1 file",
+  "other": "%1 files"
+ },
+ "Done · %1 files": {
+  "one": "Done · %1 file",
+  "other": "Done · %1 files"
+ },
+ "%1 failed: %2": {
+  "one": "%1 failed: %2",
+  "other": "%1 failed: %2"
+ },
+ "Cancelled · %1 files kept": {
+  "one": "Cancelled · %1 file kept",
+  "other": "Cancelled · %1 files kept"
+ },
+ "%1 conversions failed": {
+  "one": "%1 conversion failed",
+  "other": "%1 conversions failed"
+ },
+ "Converted %1 files, %2 failed": {
+  "one": "Converted %1 file, %2 failed",
+  "other": "Converted %1 files, %2 failed"
+ },
+ " and %1 more": {
+  "one": " and %1 more",
+  "other": " and %1 more"
+ },
+ "Converted %1 files": {
+  "one": "Converted %1 file",
+  "other": "Converted %1 files"
+ }
+}
