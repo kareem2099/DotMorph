@@ -167,7 +167,11 @@ def _items(item, name):
 
 
 def _wheel_labels(lang, files):
-    """Load the real wheel in `lang` and open every category: (label, size, width, room)."""
+    """Load the real wheel in `lang`, open (and hover) every category the way a user does, and
+    measure every label: (text, pixel size, problem or "")."""
+    import math
+
+    from PySide6.QtCore import QPointF
     from PySide6.QtQuick import QQuickItem
 
     from dotmorph.ui.bridge import Bridge
@@ -186,17 +190,39 @@ def _wheel_labels(lang, files):
     engine.load(QUrl.fromLocalFile(str(QML_MAIN)))
     root = engine.rootObjects()[0]
     wheel = root.findChild(QQuickItem, "wheel")
+    inner_edge = wheel.property("innerB")
     seen = []
     for cat in range(-1, len(wheel.property("cats").toVariant() or [])):
+        wheel.setProperty("hoverInner", cat)  # hovered: the label is scaled up 14%
         wheel.setProperty("openCat", cat)
-        wait(30)
+        wait(40)
         for sector in _items(wheel, "ringSector"):
-            room = sector.property("labelRoom")
+            cx, cy = sector.property("cx"), sector.property("cy")
+            r0, r1 = sector.property("innerR"), sector.property("outerR")
+            start, sweep = sector.property("startDeg"), sector.property("sweepDeg")
+            # The rings are 8 px apart (inner ring to 150, fan from 158): a label may reach
+            # into that gap but never under the other ring. Inner-ring names may also reach
+            # toward the hub (it starts 12 px further in); fan labels may overhang outward.
+            inner = r1 <= inner_edge
+            lo, hi = (r0 - 11, r1 + 7) if inner else (r0 - 7, r1 + 14)
             for name in ("sectorLabel", "sectorSub"):
                 text = next(_items(sector, name), None)
-                if text is not None and text.property("text"):
-                    seen.append((text.property("text"), text.property("font").pixelSize(),
-                                 text.property("implicitWidth"), room))
+                if text is None or not text.property("text"):
+                    continue
+                w, h = text.property("implicitWidth"), text.property("height")
+                problem = ""
+                for x, y in ((0, h / 2), (w, h / 2)):  # left and right ends of the text
+                    p = text.mapToItem(wheel, QPointF(x, y))
+                    dx, dy = p.x() - cx, p.y() - cy
+                    r = math.hypot(dx, dy)
+                    if not lo <= r <= hi:
+                        problem = f"leaves the ring (r={r:.0f}, ring {r0:.0f}-{r1:.0f})"
+                    angle = math.degrees(math.atan2(dx, -dy)) % 360
+                    off = (angle - start) % 360
+                    tol = math.degrees(3 / max(r, 1))
+                    if sweep < 359 and not (off <= sweep + tol or off >= 360 - tol):
+                        problem = f"crosses into the next sector ({angle:.0f} deg)"
+                seen.append((text.property("text"), text.property("font").pixelSize(), problem))
     import shiboken6
 
     shiboken6.delete(root)
@@ -205,15 +231,19 @@ def _wheel_labels(lang, files):
 
 @pytest.mark.parametrize("lang", i18n.LANGUAGES)
 def test_wheel_labels_fit_their_sectors(app, tmp_path, lang):
-    """Long translations ("Komprimieren", "Объединить PDF") shrink instead of overlapping."""
+    """Long translations ("Herramientas", "Объединить PDF") shrink instead of being cut off
+    by the open fan or running into the next sector: checked on the real geometry."""
     from PIL import Image
 
     pdfs = [tmp_path / "a.pdf", tmp_path / "b.pdf"]  # two PDFs: "Merge PDF" in the wheel
     for pdf in pdfs:
         Image.new("RGB", (80, 80), "white").save(pdf)
     seen = _wheel_labels(lang, [make_png(tmp_path / "a.png")]) + _wheel_labels(lang, pdfs)
-    assert any(size for _, size, _, _ in seen)
-    for text, size, width, room in seen:
-        assert width <= room + 2, (lang, text, width, room)
-        assert size >= 9, (lang, text, size)  # shrunk, but still readable
+    assert any(size for _, size, _ in seen)
+    problems = sorted({(text, size, problem) for text, size, problem in seen if problem})
+    assert not problems, (lang, problems)
+    labels = {text for text, _, _ in seen if not any(c.isdigit() for c in text)}
+    small = sorted({(text, size) for text, size, _ in seen
+                    if size < (9 if text in labels else 8)})
+    assert not small, (lang, small)  # shrunk, but still readable (counts are secondary)
     i18n.set_language("en")

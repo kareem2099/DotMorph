@@ -9,6 +9,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [2.2.1] - 2026-11-27
+
+### Fixed
+
+- **Category names cut off in the wheel.** With a category's fan open, a long name on the
+  inner ring ran under the fan and lost its first letters: "erramientas" in Spanish,
+  "erramentas" in Portuguese, "нструменты" in Russian. Each line of a label now gets its room
+  from where it really sits in the sector (icon, name and count are stacked), at rest and
+  hovered, and inner-ring names no longer grow on hover, where the fan would cover them.
+- Russian: "Утилиты" for Tools and "Склеить PDF" for Merge PDF, so they fit at a readable size.
+
+### Changed
+
+- The wheel-label test checks real geometry: both ends of every label, in every language,
+  must stay inside their own ring and sector. The old test compared labels with the same
+  formula that sized them, so it could never catch this.
+
 ## [2.2.0] - 2026-11-27
 
 2.1 and 2.2 of the [2.x plan](https://github.com/kareem2099/DotMorph/blob/main/docs/PLAN-2.x.md) in one release: DotMorph learns to listen,
@@ -512,6 +529,7 @@ The `dotmorph convert` flags from 0.1.0 still work. Only the default `--dpi` for
 - **First radial-menu prototype** (PySide6 / QML): frameless, always on top, opens at the
   pointer, with drag and drop.
 
+[2.2.1]: https://github.com/kareem2099/DotMorph/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/kareem2099/DotMorph/compare/v2.0.4...v2.2.0
 [2.0.4]: https://github.com/kareem2099/DotMorph/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/kareem2099/DotMorph/compare/v2.0.2...v2.0.3

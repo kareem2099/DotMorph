@@ -262,6 +262,9 @@ Item {
                 cx: wheel.cx; cy: wheel.cy
                 innerR: wheel.innerA; outerR: wheel.innerB
                 startDeg: wheel.innerBase + wheel.slot(index, wheel.innerItems.length) * wheel.innerStep
+                labelOutward: 6  // the fan opens 8 px outside: names stay off it
+                labelInward: 10  // the hub starts 12 px further in
+                popGrow: 0
                 sweepDeg: wheel.innerStep
                 readonly property bool shortcut: !wheel.flat && modelData.items.length === 1
                 label: shortcut ? modelData.items[0].label : modelData.label

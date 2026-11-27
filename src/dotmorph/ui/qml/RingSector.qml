@@ -38,20 +38,57 @@ Item {
     readonly property real midRad: (midDeg - 90) * Math.PI / 180
     readonly property real rMid: (innerR + outerR) / 2
 
-    // Widest a horizontal label can be here without leaving the sector: across the ring it
-    // may stick out a little (open space beyond), along it it must not reach the neighbours.
-    readonly property real labelRoom: {
-        var half = s.sweepDeg >= 180 ? 1e6 : s.rMid * Math.sin(s.sweepDeg * Math.PI / 360) - s.gapPx - 4
-        var across = (s.outerR - s.innerR) / 2 + 10
-        var c = Math.abs(Math.cos(s.midRad)), t = Math.abs(Math.sin(s.midRad))
-        return 2 * Math.min(c > 0.01 ? across / c : 1e6, t > 0.01 ? half / t : 1e6)
+    // How far a label may reach past the ring: the inner ring has the open fan just outside
+    // it (keep inside), the fan has empty space beyond it (a little overhang is fine).
+    property real labelInward: 6
+    // how much a hovered label grows (the inner ring keeps its names still: the fan is right
+    // there, and colour plus the lift already show which category is open)
+    property real popGrow: 0.14
+    property real labelOutward: 12
+    // Does a horizontal line of half-width `hw`, centred at (px, py) from the wheel centre,
+    // stay inside this sector? Checked at five points along it, against both ring edges and
+    // the sector's two edges (kept gapPx/2 + 2 px away from them).
+    function lineFits(px, py, hw) {
+        for (var k = -2; k <= 2; k++) {
+            var x = px + hw * k / 2
+            var r = Math.sqrt(x * x + py * py)
+            if (r < s.innerR - s.labelInward || r > s.outerR + s.labelOutward) return false
+            if (s.sweepDeg >= 359) continue
+            var angle = (Math.atan2(x, -py) * 180 / Math.PI + 360) % 360
+            var off = (angle - s.startDeg + 720) % 360
+            var margin = (s.gapPx / 2 + 2) / Math.max(r, 1) * 180 / Math.PI
+            if (off < margin || off > s.sweepDeg - margin) return false
+        }
+        return true
     }
+    // Widest label for a line `dy` px below the middle of the label block: the line has to
+    // fit both at rest and hovered (the sector moves 7 px out and the label grows 14%).
+    function roomAt(dy) {
+        var lo = 0, hi = 600
+        for (var i = 0; i < 18; i++) {
+            var w = (lo + hi) / 2, ok = true
+            for (var lift = 0; lift <= 1 && ok; lift++) {
+                var rr = s.rMid + 7 * lift, grow = 1 + s.popGrow * lift
+                ok = s.lineFits(rr * Math.cos(s.midRad), rr * Math.sin(s.midRad) + dy * grow,
+                                w * grow / 2)
+            }
+            if (ok) lo = w; else hi = w
+        }
+        return lo - 1  // font metrics are estimates: keep a little margin
+    }
+    // where the lines sit in the label block (icon, label, sub), from their base sizes
+    readonly property real iconH: s.showIcon ? 24 : 0
+    readonly property real labelH: labelBase * 1.3
+    readonly property real subH: s.sub !== "" ? 15 : 0
+    readonly property real blockH: iconH + labelH + subH
+    readonly property real labelRoom: roomAt(iconH + labelH / 2 - blockH / 2)
+    readonly property real subRoom: roomAt(iconH + labelH + subH / 2 - blockH / 2)
     readonly property int labelBase: s.showIcon ? 13 : (s.sweepDeg < 34 ? 12 : 15)
     // shrinks long translations ("Komprimieren", "Объединить PDF") instead of overlapping
     readonly property int labelSize: Math.max(8, Math.min(labelBase,
         Math.floor(labelBase * (labelRoom - 3) / Math.max(1, labelMetrics.advanceWidth))))
     readonly property int subSize: Math.max(7, Math.min(10,
-        Math.floor(10 * (labelRoom - 3) / Math.max(1, subMetrics.advanceWidth))))
+        Math.floor(10 * (subRoom - 3) / Math.max(1, subMetrics.advanceWidth))))
     TextMetrics {
         id: labelMetrics
         text: s.label
@@ -144,7 +181,7 @@ Item {
         spacing: 2
         x: s.cx + s.rMid * Math.cos(s.midRad) - width / 2
         y: s.cy + s.rMid * Math.sin(s.midRad) - height / 2
-        scale: 1 + 0.14 * s.pop
+        scale: 1 + s.popGrow * s.pop
         rotation: -s.rotation  // labels stay upright during the spin-in
 
         CategoryIcon {
