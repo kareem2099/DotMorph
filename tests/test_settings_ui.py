@@ -197,14 +197,18 @@ def _wheel_labels(lang, files):
         wheel.setProperty("openCat", cat)
         wait(40)
         for sector in _items(wheel, "ringSector"):
-            cx, cy = sector.property("cx"), sector.property("cy")
+            # the ring's centre in the wheel's coordinates: the rings lean toward the pointer
+            # (parallax), and labels lean with them, so measure from where the rings really are
+            c = sector.parentItem().mapToItem(
+                wheel, QPointF(sector.property("cx"), sector.property("cy")))
+            cx, cy = c.x(), c.y()
             r0, r1 = sector.property("innerR"), sector.property("outerR")
             start, sweep = sector.property("startDeg"), sector.property("sweepDeg")
             # The rings are 8 px apart (inner ring to 150, fan from 158): a label may reach
             # into that gap but never under the other ring. Inner-ring names may also reach
             # toward the hub (it starts 12 px further in); fan labels may overhang outward.
             inner = r1 <= inner_edge
-            lo, hi = (r0 - 11, r1 + 7) if inner else (r0 - 7, r1 + 14)
+            lo, hi = (r0 - 11, r1 + 7) if inner else (r0 - 7, r1 + 22)
             for name in ("sectorLabel", "sectorSub"):
                 text = next(_items(sector, name), None)
                 if text is None or not text.property("text"):

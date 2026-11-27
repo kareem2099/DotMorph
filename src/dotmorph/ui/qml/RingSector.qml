@@ -44,7 +44,7 @@ Item {
     // how much a hovered label grows (the inner ring keeps its names still: the fan is right
     // there, and colour plus the lift already show which category is open)
     property real popGrow: 0.14
-    property real labelOutward: 12
+    property real labelOutward: 20
     // Does a horizontal line of half-width `hw`, centred at (px, py) from the wheel centre,
     // stay inside this sector? Checked at five points along it, against both ring edges and
     // the sector's two edges (kept gapPx/2 + 2 px away from them).
